@@ -1,0 +1,25 @@
+{
+  "name": "stock-backtest",
+  "version": "1.0.0",
+  "description": "股票量化策略回测系统",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "server": "ts-node src/server/index.ts",
+    "example:ma": "ts-node examples/ma-crossover.ts",
+    "example:factor": "ts-node examples/factor-selection.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.0",
+    "csv-stringify": "^6.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  }
+}

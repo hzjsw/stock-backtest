@@ -1,0 +1,47 @@
+{
+  "name": "stock-backtest",
+  "version": "1.0.0",
+  "releaseDate": "2026-03-21",
+  "description": "股票量化策略回测系统 - V1.0 正式版",
+  "author": "QuantX Developer",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "local"
+  },
+  "keywords": [
+    "stock",
+    "backtest",
+    "quantitative",
+    "trading",
+    "strategy",
+    "technical-analysis"
+  ],
+  "mainFeatures": [
+    "Core backtesting engine with order matching and position management",
+    "Multiple data sources: CSV files, CSV directory, mock data, online APIs",
+    "Technical indicators: MA, EMA, MACD, RSI, Bollinger Bands",
+    "Multiple strategies: MA Crossover, MACD, RSI, Bollinger Bands, Multi-Factor",
+    "Online stock data fetching (NetEase, Sina, East Money, Tushare)",
+    "Auto-save fetched data to local CSV files",
+    "Data directory browser with file selection",
+    "Date range filtering for backtests",
+    "Dark financial theme web UI",
+    "Real-time backtest results visualization"
+  ],
+  "techStack": {
+    "backend": "TypeScript + Express HTTP Server",
+    "frontend": "React 18 + Vite + Tailwind CSS",
+    "dataFormat": "CSV (date, open, high, low, close, volume)"
+  },
+  "ports": {
+    "backend": 3001,
+    "frontend": 5175
+  },
+  "commands": {
+    "startServer": "npm run server",
+    "startWeb": "cd web && npm run dev",
+    "build": "npm run build",
+    "install": "npm install && cd web && npm install"
+  }
+}
