@@ -263,3 +263,125 @@ export function getIndicatorValue(values: number[], index: number): number | und
   }
   return values[index];
 }
+
+/**
+ * Parabolic SAR (抛物线转向指标)
+ * 返回 SAR 值数组和趋势方向
+ */
+export function ParabolicSAR(
+  bars: Bar[],
+  afStart: number = 0.02,
+  afIncrement: number = 0.02,
+  afMax: number = 0.2
+): { sar: number[]; trend: number[] } {  // trend: 1 = uptrend, -1 = downtrend
+  const sar: number[] = new Array(bars.length).fill(NaN);
+  const trend: number[] = new Array(bars.length).fill(0);
+
+  if (bars.length < 2) return { sar, trend };
+
+  // Initialize with first two bars
+  let currentTrend = bars[1].close > bars[0].close ? 1 : -1;
+  let currentSAR = currentTrend === 1 ? bars[0].low : bars[0].high;
+  let extremePrice = currentTrend === 1 ? bars[1].high : bars[1].low;
+  let af = afStart;
+
+  sar[1] = currentSAR;
+  trend[1] = currentTrend;
+
+  for (let i = 2; i < bars.length; i++) {
+    // Check for trend reversal
+    if (currentTrend === 1) {
+      // Uptrend - check if price breaks below SAR
+      if (bars[i].low < currentSAR) {
+        // Reversal to downtrend
+        currentTrend = -1;
+        currentSAR = extremePrice;  // Set SAR to highest high of uptrend
+        extremePrice = bars[i].low;
+        af = afStart;
+      } else {
+        // Continue uptrend
+        currentSAR = currentSAR + af * (extremePrice - currentSAR);
+        // SAR should not exceed the low of previous two bars
+        currentSAR = Math.min(currentSAR, bars[i - 1].low, bars[i - 2].low);
+
+        // Check for new extreme (new high)
+        if (bars[i].high > extremePrice) {
+          extremePrice = bars[i].high;
+          af = Math.min(af + afIncrement, afMax);
+        }
+      }
+    } else {
+      // Downtrend - check if price breaks above SAR
+      if (bars[i].high > currentSAR) {
+        // Reversal to uptrend
+        currentTrend = 1;
+        currentSAR = extremePrice;  // Set SAR to lowest low of downtrend
+        extremePrice = bars[i].high;
+        af = afStart;
+      } else {
+        // Continue downtrend
+        currentSAR = currentSAR + af * (extremePrice - currentSAR);
+        // SAR should not be below the high of previous two bars
+        currentSAR = Math.max(currentSAR, bars[i - 1].high, bars[i - 2].high);
+
+        // Check for new extreme (new low)
+        if (bars[i].low < extremePrice) {
+          extremePrice = bars[i].low;
+          af = Math.min(af + afIncrement, afMax);
+        }
+      }
+    }
+
+    sar[i] = currentSAR;
+    trend[i] = currentTrend;
+  }
+
+  return { sar, trend };
+}
+
+/**
+ * Dual Thrust Range Calculator
+ * 计算每日的突破上下轨
+ * 返回 { upper: 上轨, lower: 下轨, range: 波动范围 }
+ */
+export function DualThrustRange(
+  bars: Bar[],
+  k1: number = 0.5,
+  k2: number = 0.5,
+  lookback: number = 1  // 回看天数
+): { upper: number[]; lower: number[]; range: number[] } {
+  const upper: number[] = new Array(bars.length).fill(NaN);
+  const lower: number[] = new Array(bars.length).fill(NaN);
+  const range: number[] = new Array(bars.length).fill(NaN);
+
+  if (bars.length < lookback + 1) return { upper, lower, range };
+
+  for (let i = lookback; i < bars.length; i++) {
+    // Find highest high and lowest low from previous lookback days
+    let highestHigh = -Infinity;
+    let lowestLow = Infinity;
+    let highestClose = -Infinity;
+    let lowestClose = Infinity;
+
+    for (let j = 1; j <= lookback; j++) {
+      highestHigh = Math.max(highestHigh, bars[i - j].high);
+      lowestLow = Math.min(lowestLow, bars[i - j].low);
+      highestClose = Math.max(highestClose, bars[i - j].close);
+      lowestClose = Math.min(lowestClose, bars[i - j].close);
+    }
+
+    // Calculate range
+    const r1 = highestHigh - lowestLow;  // High - Low
+    const r2 = highestHigh - highestClose;  // High - Close
+    const r3 = lowestClose - lowestLow;  // Close - Low
+    const rangeValue = Math.max(r1, r2, r3);
+
+    // Calculate upper and lower bands
+    const openPrice = bars[i].open;
+    upper[i] = openPrice + k1 * rangeValue;
+    lower[i] = openPrice - k2 * rangeValue;
+    range[i] = rangeValue;
+  }
+
+  return { upper, lower, range };
+}

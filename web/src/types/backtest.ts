@@ -54,7 +54,7 @@ export interface BacktestResult {
   trades: Trade[]
 }
 
-export type StrategyType = 'ma-crossover' | 'macd' | 'rsi' | 'bollinger' | 'multi-factor'
+export type StrategyType = 'ma-crossover' | 'macd' | 'rsi' | 'bollinger' | 'multi-factor' | 'dual-thrust' | 'parabolic-sar'
 
 export interface StrategyParam {
   key: string
@@ -121,6 +121,26 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
       { key: 'maDeviationWeight', label: '均线偏离权重', value: 0.25, min: 0, max: 1, step: 0.05 },
       { key: 'volumeRatioWeight', label: '量比权重', value: 0.25, min: 0, max: 1, step: 0.05 },
       { key: 'topN', label: '持仓数量', value: 3, min: 1, max: 10, step: 1 },
+    ],
+  },
+  {
+    type: 'dual-thrust',
+    name: 'Dual Thrust',
+    description: '开盘区间突破策略，价格突破上轨买入，跌破下轨卖出',
+    params: [
+      { key: 'k1', label: '上轨系数 K1', value: 0.5, min: 0.1, max: 2, step: 0.1 },
+      { key: 'k2', label: '下轨系数 K2', value: 0.5, min: 0.1, max: 2, step: 0.1 },
+      { key: 'lookback', label: '回看天数', value: 1, min: 1, max: 10, step: 1 },
+    ],
+  },
+  {
+    type: 'parabolic-sar',
+    name: 'Parabolic SAR',
+    description: '抛物线转向策略，趋势反转时交易',
+    params: [
+      { key: 'afStart', label: '初始加速因子', value: 0.02, min: 0.01, max: 0.1, step: 0.01 },
+      { key: 'afIncrement', label: '加速增量', value: 0.02, min: 0.01, max: 0.1, step: 0.01 },
+      { key: 'afMax', label: '最大加速因子', value: 0.2, min: 0.1, max: 0.5, step: 0.05 },
     ],
   },
 ]

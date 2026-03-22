@@ -13,7 +13,7 @@ import {
   Bar,
   BacktestConfig,
 } from '../core/types';
-import { SMA, EMA, MACD, RSI, BollingerBands } from '../indicators';
+import { SMA, EMA, MACD, RSI, BollingerBands, ParabolicSAR, DualThrustRange } from '../indicators';
 import { fetchStockData, fetchMultipleStocks } from '../data/web-loader';
 
 const PORT = 3001;
@@ -254,12 +254,12 @@ function createMultiFactorStrategy(params: Record<string, number>): Strategy {
       const month = date.slice(0, 7);
       if (month === lastRebalanceMonth) return;
       lastRebalanceMonth = month;
-      
+
       const symbol = '000001';
       const bar = ctx.getCurrentBar(symbol);
       if (!bar) return;
       const pos = ctx.positions.get(symbol);
-      
+
       if (!pos && ctx.cash > 0) {
         const qty = Math.floor((ctx.cash * 0.8) / bar.close);
         if (qty > 0) ctx.buy(symbol, qty);
@@ -268,9 +268,82 @@ function createMultiFactorStrategy(params: Record<string, number>): Strategy {
   };
 }
 
+function createDualThrustStrategy(k1: number, k2: number, lookback: number, symbol: string = '000001'): Strategy {
+  return {
+    name: `Dual Thrust Strategy (K1=${k1}, K2=${k2})`,
+    onBar(ctx: StrategyContext) {
+      const bars = ctx.getBars(symbol);
+      if (bars.length < lookback + 1) return;
+
+      const { upper, lower } = DualThrustRange(bars, k1, k2, lookback);
+      const idx = bars.length - 1;
+
+      const upperBand = upper[idx];
+      const lowerBand = lower[idx];
+      if (isNaN(upperBand) || isNaN(lowerBand)) return;
+
+      const bar = ctx.getCurrentBar(symbol);
+      if (!bar) return;
+      const pos = ctx.positions.get(symbol);
+
+      // Price breaks above upper band - buy signal
+      if (bar.close > upperBand && !pos) {
+        const qty = Math.floor((ctx.cash * 0.8) / bar.close);
+        if (qty > 0) ctx.buy(symbol, qty);
+      }
+      // Price breaks below lower band - sell signal
+      else if (bar.close < lowerBand && pos && pos.quantity > 0) {
+        ctx.sell(symbol, pos.quantity);
+      }
+    },
+  };
+}
+
+function createParabolicSARStrategy(afStart: number, afIncrement: number, afMax: number, symbol: string = '000001'): Strategy {
+  return {
+    name: `Parabolic SAR Strategy (AF=${afStart}-${afMax})`,
+    onBar(ctx: StrategyContext) {
+      const bars = ctx.getBars(symbol);
+      if (bars.length < 3) return;
+
+      const { sar, trend } = ParabolicSAR(bars, afStart, afIncrement, afMax);
+      const idx = bars.length - 1;
+      const prev = idx - 1;
+
+      const currentSAR = sar[idx];
+      const currentTrend = trend[idx];
+      const prevTrend = trend[prev];
+      if (isNaN(currentSAR) || isNaN(currentTrend)) return;
+
+      const bar = ctx.getCurrentBar(symbol);
+      if (!bar) return;
+      const pos = ctx.positions.get(symbol);
+
+      // Trend reversal detection
+      if (prevTrend !== currentTrend) {
+        // Trend changed from down to up - buy signal
+        if (currentTrend === 1 && !pos) {
+          const qty = Math.floor((ctx.cash * 0.8) / bar.close);
+          if (qty > 0) ctx.buy(symbol, qty);
+        }
+        // Trend changed from up to down - sell signal
+        else if (currentTrend === -1 && pos && pos.quantity > 0) {
+          ctx.sell(symbol, pos.quantity);
+        }
+      }
+      // Stop loss: price breaks SAR in uptrend
+      else if (currentTrend === 1 && pos && pos.quantity > 0) {
+        if (bar.close < currentSAR) {
+          ctx.sell(symbol, pos.quantity);
+        }
+      }
+    },
+  };
+}
+
 // Backtest Request Handler
 interface BacktestRequest {
-  strategy: 'ma-crossover' | 'macd' | 'rsi' | 'bollinger' | 'multi-factor'
+  strategy: 'ma-crossover' | 'macd' | 'rsi' | 'bollinger' | 'multi-factor' | 'dual-thrust' | 'parabolic-sar'
   strategyParams: Record<string, number>
   dataSource: {
     type: 'csv-file' | 'csv-directory' | 'mock' | 'online'
@@ -421,6 +494,20 @@ function handleBacktest(body: BacktestRequest) {
       }
       break;
     }
+    case 'dual-thrust':
+      strategy = createDualThrustStrategy(p.k1 || 0.5, p.k2 || 0.5, p.lookback || 1, firstSymbol);
+      if (data.size === 0) {
+        console.log('  No data loaded, using mock 000001');
+        data.set('000001', generateStockData('000001'));
+      }
+      break;
+    case 'parabolic-sar':
+      strategy = createParabolicSARStrategy(p.afStart || 0.02, p.afIncrement || 0.02, p.afMax || 0.2, firstSymbol);
+      if (data.size === 0) {
+        console.log('  No data loaded, using mock 000001');
+        data.set('000001', generateStockData('000001'));
+      }
+      break;
     default:
       throw new Error(`Unknown strategy: ${body.strategy}`);
   }
