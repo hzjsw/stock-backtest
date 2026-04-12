@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { DataSourceConfig } from '@/types/backtest'
 import { SECTOR_OPTIONS, type SectorInfo } from '@/types/backtest'
+import { apiUrl } from '@/lib/api'
 
 interface DataFile {
   filename: string
@@ -95,7 +96,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
   const loadDataFiles = useCallback(async () => {
     setIsLoadingFiles(true)
     try {
-      const response = await fetch('http://localhost:3001/api/list-data-files')
+      const response = await fetch(apiUrl('/api/list-data-files'))
       const result = await response.json()
       if (result.success) {
         setDataFiles(result.files)
@@ -208,7 +209,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
     try {
       console.log('开始获取数据...', { symbols, source: dataSource, startDate, endDate, autoSave })
 
-      const response = await fetch('http://localhost:3001/api/fetch-data', {
+      const response = await fetch(apiUrl('/api/fetch-data'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

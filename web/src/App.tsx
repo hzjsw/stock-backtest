@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Dashboard } from '@/components/Dashboard'
 import type { BacktestResult, BacktestRequest } from '@/types/backtest'
+import { apiUrl } from '@/lib/api'
 
 function App() {
   const [result, setResult] = useState<BacktestResult | null>(null)
@@ -13,8 +14,8 @@ function App() {
     setError(null)
     try {
       console.log('发送回测请求:', request)
-      
-      const response = await fetch('http://localhost:3001/api/backtest', {
+
+      const response = await fetch(apiUrl('/api/backtest'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
