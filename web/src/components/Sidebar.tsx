@@ -17,7 +17,7 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
   const [commissionRate, setCommissionRate] = useState(0.0003)
   const [stampDutyRate, setStampDutyRate] = useState(0.001)
   const [slippage, setSlippage] = useState(0.001)
-  const [dataSource, setDataSource] = useState<{ type: 'csv-file' | 'csv-directory' | 'mock' | 'online'; filePath?: string; symbols?: string[]; onlineConfig?: { source: 'netease' | 'eastmoney' | 'sina' | 'tushare'; symbolsStr: string; startDate: string; endDate: string } }>({ type: 'mock' })
+  const [dataSource, setDataSource] = useState<DataSourceConfig>({ type: 'mock' })
   // Date range state
   const [backtestStartDate, setBacktestStartDate] = useState('')
   const [backtestEndDate, setBacktestEndDate] = useState('')

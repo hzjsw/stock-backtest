@@ -12,6 +12,9 @@
     "example:ma": "ts-node examples/ma-crossover.ts",
     "example:factor": "ts-node examples/factor-selection.ts",
     "example:optimize": "ts-node examples/optimize.ts",
+    "download:sector": "ts-node examples/download-by-sector.ts",
+    "download:all": "ts-node examples/download-by-sector.ts all",
+    "download:list": "ts-node examples/download-by-sector.ts list",
     "lint": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run"

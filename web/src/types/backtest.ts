@@ -1,16 +1,42 @@
-/** Shared types - re-exported from core */
-export type {
-  StrategyType,
-  StrategyParam,
-  StrategyOption,
-  DataSourceConfig,
-  BacktestRequest,
-  PerformanceMetricsResult as PerformanceMetrics,
-  BacktestResult,
-  BacktestConfig,
-  PortfolioSnapshot,
-  Trade,
-} from '../../src/core/types';
+/** 前端类型定义 */
+
+/** K 线数据 */
+export interface Bar {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+/** 策略类型 */
+export type StrategyType =
+  | 'ma-crossover'
+  | 'macd'
+  | 'rsi'
+  | 'bollinger'
+  | 'multi-factor'
+  | 'dual-thrust'
+  | 'parabolic-sar';
+
+/** 策略参数配置 */
+export interface StrategyParam {
+  key: string;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+}
+
+/** 策略选项 */
+export interface StrategyOption {
+  type: StrategyType;
+  name: string;
+  description: string;
+  params: StrategyParam[];
+}
 
 /** 策略选项配置 */
 export const STRATEGY_OPTIONS: StrategyOption[] = [
@@ -19,14 +45,14 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
     name: '双均线交叉',
     description: '短期均线上穿长期均线买入，下穿卖出',
     params: [
-      { key: 'shortPeriod', label: '短期均线', value: 5, min: 2, max: 150, step: 1 },
+      { key: 'shortPeriod', label: '短期均线', value: 5, min: 2, max: 100, step: 1 },
       { key: 'longPeriod', label: '长期均线', value: 20, min: 5, max: 300, step: 1 },
     ],
   },
   {
     type: 'macd',
-    name: 'MACD策略',
-    description: 'MACD金叉买入，死叉卖出',
+    name: 'MACD 策略',
+    description: 'MACD 金叉买入，死叉卖出',
     params: [
       { key: 'fastPeriod', label: '快线周期', value: 12, min: 2, max: 50, step: 1 },
       { key: 'slowPeriod', label: '慢线周期', value: 26, min: 10, max: 150, step: 1 },
@@ -35,10 +61,10 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
   },
   {
     type: 'rsi',
-    name: 'RSI策略',
-    description: 'RSI超卖买入，超买卖出',
+    name: 'RSI 策略',
+    description: 'RSI 超卖买入，超买卖出',
     params: [
-      { key: 'period', label: 'RSI周期', value: 14, min: 2, max: 50, step: 1 },
+      { key: 'period', label: 'RSI 周期', value: 14, min: 2, max: 50, step: 1 },
       { key: 'overbought', label: '超买阈值', value: 70, min: 50, max: 95, step: 1 },
       { key: 'oversold', label: '超卖阈值', value: 25, min: 5, max: 45, step: 1 },
     ],
@@ -82,6 +108,232 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
       { key: 'afStart', label: '初始加速因子', value: 0.02, min: 0.01, max: 0.1, step: 0.01 },
       { key: 'afIncrement', label: '加速增量', value: 0.02, min: 0.01, max: 0.1, step: 0.01 },
       { key: 'afMax', label: '最大加速因子', value: 0.2, min: 0.1, max: 0.5, step: 0.05 },
+    ],
+  },
+]
+
+/** 数据源配置 */
+export interface DataSourceConfig {
+  type: 'csv-file' | 'csv-directory' | 'mock' | 'online' | 'sector';
+  filePath?: string;
+  symbols?: string[];
+  onlineConfig?: {
+    source: 'netease' | 'eastmoney' | 'sina' | 'tushare';
+    symbolsStr: string;
+    startDate: string;
+    endDate: string;
+    token?: string;
+  };
+}
+
+/** 回测请求参数 */
+export interface BacktestRequest {
+  strategy: StrategyType;
+  strategyParams: Record<string, number>;
+  dataSource: DataSourceConfig;
+  config: {
+    initialCapital: number;
+    commissionRate: number;
+    stampDutyRate: number;
+    slippage: number;
+  };
+  dateRange?: {
+    startDate?: string;
+    endDate?: string;
+  };
+}
+
+/** 持仓 */
+export interface Position {
+  symbol: string;
+  quantity: number;
+  avgCost: number;
+  currentPrice: number;
+  unrealizedPnl: number;
+  realizedPnl: number;
+}
+
+/** 投资组合快照 */
+export interface PortfolioSnapshot {
+  date: string;
+  totalValue: number;
+  cash: number;
+  positionsValue: number;
+  positions: Position[];
+  dailyReturn: number;
+}
+
+/** 绩效指标 */
+export interface PerformanceMetrics {
+  totalReturn: number;
+  annualizedReturn: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+  maxDrawdownDays: number;
+  winRate: number;
+  profitLossRatio: number;
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  avgDailyReturn: number;
+  dailyReturnStd: number;
+  annualizedVolatility: number;
+  calmarRatio: number;
+  sortinoRatio: number;
+}
+
+/** 交易记录 */
+export interface Trade {
+  id: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  price: number;
+  commission: number;
+  date: string;
+  pnl?: number;
+}
+
+/** 回测配置 */
+export interface BacktestConfig {
+  initialCapital: number;
+  commissionRate: number;
+  stampDutyRate: number;
+  slippage: number;
+  startDate: string;
+  endDate: string;
+  benchmark?: string;
+}
+
+/** 回测结果 */
+export interface BacktestResult {
+  strategyName: string;
+  config: BacktestConfig;
+  metrics: PerformanceMetrics;
+  portfolioHistory: PortfolioSnapshot[];
+  trades: Trade[];
+  benchmarkHistory?: { date: string; value: number }[];
+}
+
+/** 板块信息 */
+export interface SectorInfo {
+  code: string
+  name: string
+  symbolCount: number
+  symbols: string[]
+}
+
+/** 板块选项 */
+export const SECTOR_OPTIONS: SectorInfo[] = [
+  {
+    code: 'bank',
+    name: '银行',
+    symbolCount: 20,
+    symbols: [
+      '600000', '600015', '600016', '600036', '601009',
+      '601166', '601169', '601229', '601288', '601328',
+      '601398', '601658', '601818', '601939', '601988',
+      '000001', '002142', '002807', '002936', '002948',
+    ],
+  },
+  {
+    code: 'securities',
+    name: '证券',
+    symbolCount: 22,
+    symbols: [
+      '600030', '600109', '600837', '600999', '601066',
+      '601108', '601211', '601377', '601688', '601788',
+      '601878', '000166', '000686', '000728', '000750',
+      '000776', '000783', '002673', '002736', '002797',
+      '002926', '002939',
+    ],
+  },
+  {
+    code: 'insurance',
+    name: '保险',
+    symbolCount: 4,
+    symbols: ['601318', '601601', '601628', '000996'],
+  },
+  {
+    code: 'realestate',
+    name: '房地产',
+    symbolCount: 12,
+    symbols: [
+      '000002', '000069', '000402', '001979', '600007',
+      '600048', '600153', '600325', '600340', '600383',
+      '600606', '601155',
+    ],
+  },
+  {
+    code: 'tech',
+    name: '科技',
+    symbolCount: 20,
+    symbols: [
+      '000063', '000100', '000725', '000977', '002049',
+      '002230', '002415', '002916', '300014', '300059',
+      '300124', '300750', '600183', '600498', '600570',
+      '600584', '600745', '601138', '688012', '688981',
+    ],
+  },
+  {
+    code: 'consumer',
+    name: '消费',
+    symbolCount: 18,
+    symbols: [
+      '000333', '000568', '000651', '000799', '000858',
+      '000895', '002304', '002507', '002557', '002739',
+      '600138', '600519', '600597', '600690', '600887',
+      '601888', '603198', '603288',
+    ],
+  },
+  {
+    code: 'pharma',
+    name: '医药',
+    symbolCount: 22,
+    symbols: [
+      '000423', '000513', '000538', '000661', '000963',
+      '002007', '002603', '300003', '300015', '300122',
+      '300142', '300601', '600079', '600085', '600161',
+      '600196', '600276', '600332', '600436', '600511',
+      '601607', '603259',
+    ],
+  },
+  {
+    code: 'manufacturing',
+    name: '制造',
+    symbolCount: 153,
+    symbols: [
+      '000157', '000333', '000425', '000528', '000625',
+      '000651', '000951', '002048', '002050', '002074',
+      '002179', '002202', '600006', '600019', '600031',
+      '600038', '600062', '600066', '600104', '600150',
+      '600169', '600183', '600206', '600219', '600309',
+      '600316', '600320', '600346', '600362', '600372',
+      '600392', '600399', '600406', '600418', '600426',
+      '600435', '600456', '600458', '600460', '600472',
+      '600482', '600487', '600489', '600497', '600507',
+      '600516', '600522', '600528', '600547', '600549',
+      '600550', '600563', '600575', '600580', '600581',
+      '600582', '600583', '600585', '600588', '600591',
+      '600600', '600660', '600674', '600685', '600686',
+      '600688', '600690', '600699', '600703', '600704',
+      '600741', '600742', '600760', '600761', '600763',
+      '600764', '600765', '600808', '600845', '600850',
+      '600862', '600875', '600879', '600884', '600885',
+      '600893', '600900', '600970', '601012', '601038',
+      '601058', '601100', '601127', '601137', '601138',
+      '601155', '601163', '601179', '601208', '601233',
+      '601238', '601311', '601360', '601377', '601515',
+      '601566', '601600', '601606', '601608', '601609',
+      '601611', '601615', '601618', '601619', '601633',
+      '601668', '601669', '601677', '601688', '601689',
+      '601698', '601717', '601727', '601777', '601788',
+      '601799', '601800', '601808', '601828', '601857',
+      '601865', '601866', '601868', '601877', '601880',
+      '601882', '601890', '601898', '601899', '601901',
+      '601919', '601928', '601939', '601952', '601958',
+      '601965', '601966', '601968', '601975', '601985',
+      '601989', '601991', '601992',
     ],
   },
 ]

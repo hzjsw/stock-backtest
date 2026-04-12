@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
-import { Sidebar, type BacktestRequest } from '@/components/Sidebar'
+import { Sidebar } from '@/components/Sidebar'
 import { Dashboard } from '@/components/Dashboard'
-import type { BacktestResult } from '@/types/backtest'
+import type { BacktestResult, BacktestRequest } from '@/types/backtest'
 
 function App() {
   const [result, setResult] = useState<BacktestResult | null>(null)

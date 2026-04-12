@@ -224,7 +224,7 @@ export interface StrategyOption {
 
 /** 数据源配置 */
 export interface DataSourceConfig {
-  type: 'csv-file' | 'csv-directory' | 'mock' | 'online';
+  type: 'csv-file' | 'csv-directory' | 'mock' | 'online' | 'sector';
   filePath?: string;
   symbols?: string[];
   onlineConfig?: {

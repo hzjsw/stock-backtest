@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Upload, FileText, Database, Trash2, CheckCircle2, AlertCircle, CloudDownload, Loader2, RefreshCw, FolderOpen } from 'lucide-react'
+import { Upload, FileText, Database, Trash2, CheckCircle2, AlertCircle, CloudDownload, Loader2, RefreshCw, FolderOpen, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { DataSourceConfig } from '@/types/backtest'
+import { SECTOR_OPTIONS, type SectorInfo } from '@/types/backtest'
 
 interface DataFile {
   filename: string
@@ -41,7 +42,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
 
       // 提取股票代码（文件名去掉扩展名）
       const symbol = file.name.replace('.csv', '')
-      
+
       onChange({
         type: 'csv-file',
         filePath: file.name,
@@ -86,6 +87,9 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
   const [dataFiles, setDataFiles] = useState<DataFile[]>([])
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
+
+  // Sector selector state
+  const [selectedSectors, setSelectedSectors] = useState<Set<string>>(new Set())
 
   // Load data files when csv-directory is selected
   const loadDataFiles = useCallback(async () => {
@@ -145,6 +149,47 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
     setSelectedFiles(new Set())
   }, [])
 
+  // Handle sector selection
+  const toggleSector = useCallback((sectorCode: string) => {
+    setSelectedSectors(prev => {
+      const next = new Set(prev)
+      if (next.has(sectorCode)) {
+        next.delete(sectorCode)
+      } else {
+        next.add(sectorCode)
+      }
+      return next
+    })
+  }, [])
+
+  // Confirm sector selection
+  const confirmSectorSelection = useCallback(() => {
+    const allSymbols: string[] = []
+    selectedSectors.forEach(sectorCode => {
+      const sector = SECTOR_OPTIONS.find(s => s.code === sectorCode)
+      if (sector) {
+        allSymbols.push(...sector.symbols)
+      }
+    })
+    if (allSymbols.length > 0) {
+      onChange({
+        type: 'csv-directory',
+        filePath: 'data',
+        symbols: allSymbols,
+      })
+    }
+  }, [selectedSectors, onChange])
+
+  // Select all sectors
+  const selectAllSectors = useCallback(() => {
+    setSelectedSectors(new Set(SECTOR_OPTIONS.map(s => s.code)))
+  }, [])
+
+  // Clear sector selection
+  const clearSectorSelection = useCallback(() => {
+    setSelectedSectors(new Set())
+  }, [])
+
   const [isFetching, setIsFetching] = useState(false)
   const [onlineSymbols, setOnlineSymbols] = useState('600000, 600036, 000001')
   const [startDate, setStartDate] = useState('20230101')
@@ -162,7 +207,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
     setIsFetching(true)
     try {
       console.log('开始获取数据...', { symbols, source: dataSource, startDate, endDate, autoSave })
-      
+
       const response = await fetch('http://localhost:3001/api/fetch-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -177,7 +222,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
 
       const result = await response.json()
       console.log('获取结果:', result)
-      
+
       if (!result.success) {
         throw new Error(result.message)
       }
@@ -192,7 +237,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
           endDate,
         },
       })
-      
+
       let message = `✓ 成功获取 ${result.data.length} 只股票的数据`
       if (result.savedTo) {
         message += `\n✓ 数据已保存到 ${result.savedTo} 目录`
@@ -212,9 +257,9 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
         <label className="sidebar-label flex items-center gap-1.5">
           <Database className="w-3 h-3" /> 数据来源
         </label>
-        
+
         {/* 数据源选择 */}
-        <div className="grid grid-cols-4 gap-2 mb-3">
+        <div className="grid grid-cols-5 gap-2 mb-3">
           <button
             onClick={() => onChange({ type: 'mock' })}
             className={`px-2 py-2 text-xs rounded-md border transition-all ${
@@ -234,6 +279,17 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
             }`}
           >
             CSV 目录
+          </button>
+          <button
+            onClick={() => onChange({ type: 'sector' })}
+            className={`px-2 py-2 text-xs rounded-md border transition-all flex items-center justify-center gap-1 ${
+              config.type === 'sector'
+                ? 'border-primary bg-secondary text-foreground'
+                : 'border-border text-muted-foreground hover:bg-secondary/50'
+            }`}
+          >
+            <Layers className="w-3 h-3" />
+            板块选择
           </button>
           <button
             onClick={() => document.getElementById('csv-upload')?.click()}
@@ -290,6 +346,84 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
           </div>
         )}
 
+        {/* 板块选择 */}
+        {config.type === 'sector' && (
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-medium">选择板块</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={selectAllSectors}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    全选
+                  </button>
+                  <span className="text-xs text-muted-foreground">|</span>
+                  <button
+                    onClick={clearSectorSelection}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    清除
+                  </button>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    已选 {selectedSectors.size}/{SECTOR_OPTIONS.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto space-y-1 border rounded-md p-2">
+                {SECTOR_OPTIONS.map(sector => (
+                  <label
+                    key={sector.code}
+                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                      selectedSectors.has(sector.code)
+                        ? 'bg-primary/10 border border-primary/30'
+                        : 'hover:bg-secondary border border-transparent'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSectors.has(sector.code)}
+                      onChange={() => toggleSector(sector.code)}
+                      className="rounded border-border"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-foreground">{sector.name}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {sector.symbolCount} 只股票
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {sector.symbols.slice(0, 8).join('、')}
+                        {sector.symbols.length > 8 && '...'}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <Button
+                variant="gold"
+                size="sm"
+                className="w-full mt-2"
+                onClick={confirmSectorSelection}
+                disabled={selectedSectors.size === 0}
+              >
+                确认选择 (
+                {Array.from(selectedSectors).reduce((sum, code) => {
+                  const sector = SECTOR_OPTIONS.find(s => s.code === code)
+                  return sum + (sector?.symbolCount || 0)
+                }, 0)} 只股票)
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* CSV 目录文件列表 */}
         {config.type === 'csv-directory' && (
           <Card>
@@ -317,7 +451,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
                 <div className="text-xs text-muted-foreground text-center py-4">
                   <AlertCircle className="w-4 h-4 mx-auto mb-1" />
                   <p>data/ 目录中没有 CSV 文件</p>
-                  <p className="mt-1">请先通过"在线获取"下载数据</p>
+                  <p className="mt-1">请先通过"在线获取"或"板块选择"下载数据</p>
                 </div>
               ) : (
                 <>
@@ -479,7 +613,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
           <div className="mt-3">
             <label className="sidebar-label">已加载股票</label>
             <div className="flex flex-wrap gap-1.5">
-              {config.symbols.map(sym => (
+              {config.symbols.map((sym: string) => (
                 <span
                   key={sym}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-secondary border border-border"
