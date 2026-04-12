@@ -1,0 +1,73 @@
+name: Update Stock Data
+
+on:
+  schedule:
+    # 每个交易日 16:00 UTC (北京时间 00:00) 运行
+    - cron: '0 16 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      sector:
+        description: '选择要更新的板块 (留空则更新全部)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - all
+          - bank
+          - securities
+          - insurance
+          - realestate
+          - tech
+          - consumer
+          - pharma
+          - manufacturing
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download stock data
+        run: |
+          if [ "${{ github.event.inputs.sector }}" == "all" ] || [ -z "${{ github.event.inputs.sector }}" ]; then
+            echo "Downloading all sectors..."
+            npm run download:all
+          else
+            echo "Downloading sector: ${{ github.event.inputs.sector }}"
+            npx ts-node examples/download-by-sector.ts ${{ github.event.inputs.sector }}
+          fi
+        env:
+          CI: true
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --quiet data/ || echo "has_changes=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.git-check.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          git commit -m "chore(data): auto-update stock data $(date +%Y-%m-%d)"
+          git push
+
+      - name: No changes
+        if: steps.git-check.outputs.has_changes != 'true'
+        run: echo "No new data changes detected"
