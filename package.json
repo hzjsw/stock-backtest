@@ -11,7 +11,10 @@
     "server": "ts-node src/server/index.ts",
     "example:ma": "ts-node examples/ma-crossover.ts",
     "example:factor": "ts-node examples/factor-selection.ts",
-    "lint": "tsc --noEmit"
+    "example:optimize": "ts-node examples/optimize.ts",
+    "lint": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "csv-parse": "^5.5.0",
@@ -20,6 +23,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^1.3.0"
   }
 }

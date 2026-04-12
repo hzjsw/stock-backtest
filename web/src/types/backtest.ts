@@ -1,85 +1,26 @@
-/** Shared types mirroring the backend BacktestResult */
+/** Shared types - re-exported from core */
+export type {
+  StrategyType,
+  StrategyParam,
+  StrategyOption,
+  DataSourceConfig,
+  BacktestRequest,
+  PerformanceMetricsResult as PerformanceMetrics,
+  BacktestResult,
+  BacktestConfig,
+  PortfolioSnapshot,
+  Trade,
+} from '../../src/core/types';
 
-export interface PortfolioSnapshot {
-  date: string
-  totalValue: number
-  cash: number
-  positionsValue: number
-  dailyReturn: number
-}
-
-export interface Trade {
-  id: string
-  symbol: string
-  side: 'buy' | 'sell'
-  quantity: number
-  price: number
-  commission: number
-  date: string
-  pnl?: number
-}
-
-export interface PerformanceMetrics {
-  totalReturn: number
-  annualizedReturn: number
-  sharpeRatio: number
-  maxDrawdown: number
-  maxDrawdownDays: number
-  winRate: number
-  profitLossRatio: number
-  totalTrades: number
-  winningTrades: number
-  losingTrades: number
-  avgDailyReturn: number
-  dailyReturnStd: number
-  annualizedVolatility: number
-  calmarRatio: number
-  sortinoRatio: number
-}
-
-export interface BacktestConfig {
-  initialCapital: number
-  commissionRate: number
-  stampDutyRate: number
-  slippage: number
-  startDate: string
-  endDate: string
-}
-
-export interface BacktestResult {
-  strategyName: string
-  config: BacktestConfig
-  metrics: PerformanceMetrics
-  portfolioHistory: PortfolioSnapshot[]
-  trades: Trade[]
-}
-
-export type StrategyType = 'ma-crossover' | 'macd' | 'rsi' | 'bollinger' | 'multi-factor' | 'dual-thrust' | 'parabolic-sar'
-
-export interface StrategyParam {
-  key: string
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-}
-
-export interface StrategyOption {
-  type: StrategyType
-  name: string
-  description: string
-  params: StrategyParam[]
-}
-
+/** 策略选项配置 */
 export const STRATEGY_OPTIONS: StrategyOption[] = [
   {
     type: 'ma-crossover',
     name: '双均线交叉',
     description: '短期均线上穿长期均线买入，下穿卖出',
     params: [
-      { key: 'shortPeriod', label: '短期均线', value: 5, min: 2, max: 60, step: 1 },
-      { key: 'longPeriod', label: '长期均线', value: 20, min: 5, max: 250, step: 1 },
+      { key: 'shortPeriod', label: '短期均线', value: 5, min: 2, max: 150, step: 1 },
+      { key: 'longPeriod', label: '长期均线', value: 20, min: 5, max: 300, step: 1 },
     ],
   },
   {
@@ -88,7 +29,7 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
     description: 'MACD金叉买入，死叉卖出',
     params: [
       { key: 'fastPeriod', label: '快线周期', value: 12, min: 2, max: 50, step: 1 },
-      { key: 'slowPeriod', label: '慢线周期', value: 26, min: 10, max: 100, step: 1 },
+      { key: 'slowPeriod', label: '慢线周期', value: 26, min: 10, max: 150, step: 1 },
       { key: 'signalPeriod', label: '信号线周期', value: 9, min: 2, max: 30, step: 1 },
     ],
   },
@@ -99,7 +40,7 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
     params: [
       { key: 'period', label: 'RSI周期', value: 14, min: 2, max: 50, step: 1 },
       { key: 'overbought', label: '超买阈值', value: 70, min: 50, max: 95, step: 1 },
-      { key: 'oversold', label: '超卖阈值', value: 30, min: 5, max: 50, step: 1 },
+      { key: 'oversold', label: '超卖阈值', value: 25, min: 5, max: 45, step: 1 },
     ],
   },
   {
@@ -107,7 +48,7 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
     name: '布林带策略',
     description: '价格触及下轨买入，触及上轨卖出',
     params: [
-      { key: 'period', label: '均线周期', value: 20, min: 5, max: 100, step: 1 },
+      { key: 'period', label: '均线周期', value: 20, min: 5, max: 150, step: 1 },
       { key: 'stdDev', label: '标准差倍数', value: 2, min: 0.5, max: 4, step: 0.1 },
     ],
   },

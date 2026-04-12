@@ -27,7 +27,19 @@ export { loadFromCsv, loadMultipleFromCsv, loadFromDirectory, ApiLoader, createB
 export type { CsvLoadOptions, ApiConfig, ApiLoadOptions, ApiFieldMapping } from './data';
 
 // 技术指标
-export { SMA, EMA, MACD, RSI, BollingerBands, ATR, KDJ, VWAP, getIndicatorValue } from './indicators';
+export {
+  SMA,
+  EMA,
+  MACD,
+  RSI,
+  BollingerBands,
+  ATR,
+  KDJ,
+  VWAP,
+  ParabolicSAR,
+  DualThrustRange,
+  getIndicatorValue,
+} from './indicators';
 
 // 因子选股
 export {
@@ -45,3 +57,11 @@ export type { FactorScore } from './factors';
 
 // 可视化
 export { generateReport, printSummary } from './visualization';
+
+// 工具模块
+export { logger, Logger, AppError, ValidationError, NotFoundError, DataError, tryCatch } from './lib/logger';
+export type { LoggerConfig, LogLevel } from './lib/logger';
+
+// 策略优化
+export { compareStrategies, gridSearch, printComparison } from './optimizer';
+export type { BacktestSummary } from './optimizer';

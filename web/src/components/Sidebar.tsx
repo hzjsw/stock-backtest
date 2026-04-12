@@ -1,39 +1,13 @@
 import { useState } from 'react'
 import { Play, Settings, TrendingUp, Loader2, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { STRATEGY_OPTIONS, type StrategyType, type BacktestResult } from '@/types/backtest'
+import { STRATEGY_OPTIONS, type StrategyType, type BacktestRequest, type BacktestResult, type DataSourceConfig } from '@/types/backtest'
 import { DataSourcePanel } from '@/components/DataSourcePanel'
 
 interface SidebarProps {
   onRunBacktest: (config: BacktestRequest) => void
   isLoading: boolean
   result: BacktestResult | null
-}
-
-export interface BacktestRequest {
-  strategy: StrategyType
-  strategyParams: Record<string, number>
-  dataSource: {
-    type: 'csv-file' | 'csv-directory' | 'mock' | 'online'
-    filePath?: string
-    symbols?: string[]
-    onlineConfig?: {
-      source: string
-      symbolsStr: string
-      startDate: string
-      endDate: string
-    }
-  }
-  config: {
-    initialCapital: number
-    commissionRate: number
-    stampDutyRate: number
-    slippage: number
-  }
-  dateRange?: {
-    startDate?: string
-    endDate?: string
-  }
 }
 
 export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {

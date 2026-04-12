@@ -12,11 +12,26 @@ import {
   StrategyContext,
   Bar,
   BacktestConfig,
+  BacktestRequest,
+  DataSourceConfig,
 } from '../core/types';
-import { SMA, EMA, MACD, RSI, BollingerBands, ParabolicSAR, DualThrustRange } from '../indicators';
+import {
+  SMA,
+  EMA,
+  MACD,
+  RSI,
+  BollingerBands,
+  ParabolicSAR,
+  DualThrustRange,
+  getIndicatorValue,
+} from '../index';
 import { fetchStockData, fetchMultipleStocks } from '../data/web-loader';
+import { logger, ValidationError, DataError } from '../lib/logger';
 
 const PORT = 3001;
+
+// 创建服务器专用日志器
+const serverLogger = logger.child('server');
 
 // CSV Helper Functions
 function saveToCsv(filePath: string, bars: any[]): void {
@@ -117,13 +132,6 @@ function generateStockData(symbol: string, days: number = 500): Bar[] {
 }
 
 // Strategy Factory Functions
-function getIndicatorValue(indicator: any[], index: number): number | undefined {
-  const val = indicator[index];
-  if (typeof val === 'number' && !isNaN(val)) {
-    return val;
-  }
-  return undefined;
-}
 
 function createMACrossover(shortPeriod: number, longPeriod: number, symbol: string = '000001'): Strategy {
   return {
@@ -342,33 +350,6 @@ function createParabolicSARStrategy(afStart: number, afIncrement: number, afMax:
 }
 
 // Backtest Request Handler
-interface BacktestRequest {
-  strategy: 'ma-crossover' | 'macd' | 'rsi' | 'bollinger' | 'multi-factor' | 'dual-thrust' | 'parabolic-sar'
-  strategyParams: Record<string, number>
-  dataSource: {
-    type: 'csv-file' | 'csv-directory' | 'mock' | 'online'
-    filePath?: string
-    symbols?: string[]
-    onlineConfig?: {
-      source: string
-      symbolsStr: string
-      startDate: string
-      endDate: string
-    }
-  }
-  config: {
-    initialCapital: number
-    commissionRate: number
-    stampDutyRate: number
-    slippage: number
-  }
-  // Date range for backtest
-  dateRange?: {
-    startDate?: string  // Format: YYYY-MM-DD
-    endDate?: string    // Format: YYYY-MM-DD
-  }
-}
-
 function handleBacktest(body: BacktestRequest) {
   const engineConfig: Partial<BacktestConfig> = {
     initialCapital: body.config.initialCapital || 1000000,
@@ -411,20 +392,20 @@ function handleBacktest(body: BacktestRequest) {
   } else if (dataSource.type === 'online' && dataSource.symbols && dataSource.onlineConfig) {
     const dataDir = path.join(process.cwd(), 'data');
     data = new Map<string, Bar[]>();
-    
+
     for (const symbol of dataSource.symbols) {
       const csvPath = path.join(dataDir, `${symbol}.csv`);
       if (fs.existsSync(csvPath)) {
         const bars = loadCsvFile(csvPath);
         data.set(symbol, bars);
-        console.log(`  Loaded ${symbol} (${bars.length} bars)`);
+        serverLogger.debug(`Loaded ${symbol} (${bars.length} bars)`);
       } else {
-        console.warn(`  File not found: ${csvPath}`);
+        serverLogger.warn(`File not found: ${csvPath}`);
       }
     }
-    
+
     if (data.size === 0) {
-      console.warn('  No data found, using mock data');
+      serverLogger.warn('No data found, using mock data');
       data = new Map();
     }
   } else {
@@ -436,7 +417,7 @@ function handleBacktest(body: BacktestRequest) {
     const startDate = body.dateRange.startDate || '0000-00-00';
     const endDate = body.dateRange.endDate || '9999-99-99';
 
-    console.log(`  Filtering data by date range: ${startDate} to ${endDate}`);
+    serverLogger.info(`Filtering data by date range: ${startDate} to ${endDate}`);
 
     const filteredData = new Map<string, Bar[]>();
     for (const [symbol, bars] of data) {
@@ -445,7 +426,7 @@ function handleBacktest(body: BacktestRequest) {
       });
       if (filteredBars.length > 0) {
         filteredData.set(symbol, filteredBars);
-        console.log(`    ${symbol}: ${bars.length} -> ${filteredBars.length} bars`);
+        serverLogger.debug(`${symbol}: ${bars.length} -> ${filteredBars.length} bars`);
       }
     }
     data = filteredData;
@@ -459,35 +440,35 @@ function handleBacktest(body: BacktestRequest) {
     case 'ma-crossover':
       strategy = createMACrossover(p.shortPeriod || 5, p.longPeriod || 20, firstSymbol);
       if (data.size === 0) {
-        console.log('  No data loaded, using mock 000001');
+        serverLogger.info('No data loaded, using mock 000001');
         data.set('000001', generateStockData('000001'));
       }
       break;
     case 'macd':
       strategy = createMACDStrategy(p.fastPeriod || 12, p.slowPeriod || 26, p.signalPeriod || 9, firstSymbol);
       if (data.size === 0) {
-        console.log('  No data loaded, using mock 000001');
+        serverLogger.info('No data loaded, using mock 000001');
         data.set('000001', generateStockData('000001'));
       }
       break;
     case 'rsi':
       strategy = createRSIStrategy(p.period || 14, p.overbought || 70, p.oversold || 30, firstSymbol);
       if (data.size === 0) {
-        console.log('  No data loaded, using mock 000001');
+        serverLogger.info('No data loaded, using mock 000001');
         data.set('000001', generateStockData('000001'));
       }
       break;
     case 'bollinger':
       strategy = createBollingerStrategy(p.period || 20, p.stdDev || 2, firstSymbol);
       if (data.size === 0) {
-        console.log('  No data loaded, using mock 000001');
+        serverLogger.info('No data loaded, using mock 000001');
         data.set('000001', generateStockData('000001'));
       }
       break;
     case 'multi-factor': {
       strategy = createMultiFactorStrategy(p);
       if (data.size === 0) {
-        console.log('  No data loaded, using multi-factor mock data');
+        serverLogger.info('No data loaded, using multi-factor mock data');
         const symbols = ['600000', '600036', '601318', '000001', '000002',
                          '000858', '002415', '300059', '600519', '601166'];
         for (const sym of symbols) data.set(sym, generateStockData(sym));
@@ -497,14 +478,14 @@ function handleBacktest(body: BacktestRequest) {
     case 'dual-thrust':
       strategy = createDualThrustStrategy(p.k1 || 0.5, p.k2 || 0.5, p.lookback || 1, firstSymbol);
       if (data.size === 0) {
-        console.log('  No data loaded, using mock 000001');
+        serverLogger.info('No data loaded, using mock 000001');
         data.set('000001', generateStockData('000001'));
       }
       break;
     case 'parabolic-sar':
       strategy = createParabolicSARStrategy(p.afStart || 0.02, p.afIncrement || 0.02, p.afMax || 0.2, firstSymbol);
       if (data.size === 0) {
-        console.log('  No data loaded, using mock 000001');
+        serverLogger.info('No data loaded, using mock 000001');
         data.set('000001', generateStockData('000001'));
       }
       break;
@@ -534,13 +515,45 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const parsed: BacktestRequest = JSON.parse(body);
+
+        // 验证请求参数
+        if (!parsed.strategy) {
+          throw new ValidationError('Missing strategy type');
+        }
+        if (!parsed.config) {
+          throw new ValidationError('Missing backtest config');
+        }
+
+        serverLogger.info(`Running backtest: ${parsed.strategy}`, {
+          strategy: parsed.strategy,
+          dataSource: parsed.dataSource?.type,
+          initialCapital: parsed.config?.initialCapital,
+        });
+
         const result = handleBacktest(parsed);
+
+        serverLogger.info('Backtest completed', {
+          totalReturn: result.metrics.totalReturn,
+          trades: result.trades.length,
+        });
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
       } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: err instanceof Error ? err.message : 'Backtest failed' }));
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        const isAppError = err instanceof ValidationError || err instanceof DataError;
+        const statusCode = isAppError ? (err as any).statusCode : 500;
+
+        serverLogger.error('Backtest failed', error);
+
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          error: {
+            code: isAppError ? (err as any).code : 'INTERNAL_ERROR',
+            message: error.message,
+          },
+        }));
       }
     });
     return;
@@ -614,35 +627,44 @@ const server = http.createServer((req, res) => {
       try {
         const parsed = JSON.parse(body);
         const { symbols, source = 'netease', startDate, endDate, token, autoSave = true } = parsed;
-        
+
         if (!symbols || !Array.isArray(symbols)) {
-          throw new Error('Missing stock symbols');
+          throw new ValidationError('Missing stock symbols');
         }
-        
+
+        serverLogger.info(`Fetching data for ${symbols.length} stocks from ${source}`);
+
         const data = await fetchMultipleStocks(symbols, source, { startDate, endDate, token });
-        
+
+        let savedCount = 0;
         if (autoSave) {
           const dataDir = path.join(process.cwd(), 'data');
-          let savedCount = 0;
           for (const [symbol, bars] of data) {
             const filePath = path.join(dataDir, `${symbol}.csv`);
             saveToCsv(filePath, bars as any);
-            console.log(`  Saved ${symbol} to ${filePath} (${bars.length} bars)`);
+            serverLogger.debug(`Saved ${symbol} to ${filePath} (${bars.length} bars)`);
             savedCount++;
           }
-          console.log(`  Total saved: ${savedCount} stocks`);
+          serverLogger.info(`Total saved: ${savedCount} stocks`);
         }
-        
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
           data: Array.from(data.entries()).map(([symbol, bars]) => ({ symbol, count: bars.length })),
+          savedCount,
         }));
       } catch (err) {
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        serverLogger.error('Failed to fetch data', error);
+
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: false,
-          message: err instanceof Error ? err.message : 'Failed to fetch data',
+          error: {
+            code: 'DATA_FETCH_ERROR',
+            message: error.message,
+          },
         }));
       }
     });
@@ -654,9 +676,10 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`
-  Backtest API Server started: http://localhost:${PORT}
-  Health check: http://localhost:${PORT}/api/health
-  Backtest endpoint: POST http://localhost:${PORT}/api/backtest
-`);
+  serverLogger.info(`Server started on port ${PORT}`);
+  serverLogger.info('Endpoints:');
+  serverLogger.info('  GET  /api/health - Health check');
+  serverLogger.info('  POST /api/backtest - Run backtest');
+  serverLogger.info('  GET  /api/list-data-files - List data files');
+  serverLogger.info('  POST /api/fetch-data - Fetch online data');
 });

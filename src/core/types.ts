@@ -189,3 +189,69 @@ export interface Factor {
   /** 计算因子值 */
   calculate(bars: Bar[]): number;
 }
+
+// ============================================
+// API 和前端通用类型
+// ============================================
+
+/** 策略类型 */
+export type StrategyType =
+  | 'ma-crossover'
+  | 'macd'
+  | 'rsi'
+  | 'bollinger'
+  | 'multi-factor'
+  | 'dual-thrust'
+  | 'parabolic-sar';
+
+/** 策略参数配置 */
+export interface StrategyParam {
+  key: string;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+}
+
+/** 策略选项 */
+export interface StrategyOption {
+  type: StrategyType;
+  name: string;
+  description: string;
+  params: StrategyParam[];
+}
+
+/** 数据源配置 */
+export interface DataSourceConfig {
+  type: 'csv-file' | 'csv-directory' | 'mock' | 'online';
+  filePath?: string;
+  symbols?: string[];
+  onlineConfig?: {
+    source: 'netease' | 'eastmoney' | 'sina' | 'tushare';
+    symbolsStr: string;
+    startDate: string;
+    endDate: string;
+    token?: string;
+  };
+}
+
+/** 回测请求参数 */
+export interface BacktestRequest {
+  strategy: StrategyType;
+  strategyParams: Record<string, number>;
+  dataSource: DataSourceConfig;
+  config: {
+    initialCapital: number;
+    commissionRate: number;
+    stampDutyRate: number;
+    slippage: number;
+  };
+  dateRange?: {
+    startDate?: string;
+    endDate?: string;
+  };
+}
+
+/** 绩效指标（与 PerformanceMetrics 相同，为了前端兼容） */
+export type PerformanceMetricsResult = PerformanceMetrics;

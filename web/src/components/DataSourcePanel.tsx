@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Upload, FileText, Database, Trash2, CheckCircle2, AlertCircle, CloudDownload, Loader2, RefreshCw, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import type { DataSourceConfig } from '@/types/backtest'
 
 interface DataFile {
   filename: string
@@ -11,19 +12,6 @@ interface DataFile {
   startDate: string
   endDate: string
   modified: string
-}
-
-interface DataSourceConfig {
-  type: 'csv-file' | 'csv-directory' | 'mock' | 'online'
-  filePath?: string
-  symbols?: string[]
-  onlineConfig?: {
-    source: 'netease' | 'eastmoney' | 'sina' | 'tushare'
-    symbolsStr: string
-    startDate: string
-    endDate: string
-    token?: string
-  }
 }
 
 interface DataSourceProps {
