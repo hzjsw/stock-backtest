@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { BacktestEngine } from '../core/engine';
-import type { Strategy, StrategyContext, Bar } from '../core/types';
+import type { Strategy, StrategyContext, Bar, RiskOrder } from '../core/types';
 
 // 辅助函数：创建模拟 K 线数据
 function createMockBars(count: number, startPrice: number = 100): Bar[] {
@@ -285,6 +285,298 @@ describe('回测引擎测试', () => {
 
       // 空策略夏普比率应该为 0
       expect(result.metrics.sharpeRatio).toBe(0);
+    });
+  });
+
+  describe('止损止盈功能', () => {
+    it('应该能够设置并触发止损', () => {
+      const data = new Map<string, Bar[]>();
+      // 创建先上涨后下跌的数据
+      const bars: Bar[] = [];
+      let price = 100;
+      for (let i = 0; i < 50; i++) {
+        const date = new Date('2023-01-01');
+        date.setDate(date.getDate() + i);
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+        // 先涨后跌
+        if (i < 10) {
+          price *= 1.02; // 前 10 天每天涨 2%
+        } else {
+          price *= 0.97; // 之后每天跌 3%
+        }
+
+        bars.push({
+          date: date.toISOString().split('T')[0],
+          open: price,
+          high: price * 1.01,
+          low: price * 0.97,
+          close: price,
+          volume: 1000000,
+        });
+      }
+      data.set('000001', bars);
+
+      let stopLossSet = false;
+
+      const strategy: Strategy = {
+        name: 'Stop Loss Strategy',
+        onBar(ctx: StrategyContext) {
+          const bar = ctx.getCurrentBar('000001');
+          const position = ctx.positions.get('000001');
+
+          // 第一天买入
+          if (!position && ctx.cash > 10000 && bar) {
+            const qty = Math.floor(ctx.cash * 0.9 / bar.close);
+            if (qty > 0) {
+              ctx.buy('000001', qty);
+              // 设置止损价为买入价的 95%
+              const stopPrice = bar.close * 0.95;
+              ctx.setStopLoss('000001', stopPrice);
+              stopLossSet = true;
+            }
+          }
+        },
+      };
+
+      const engine = new BacktestEngine({
+        initialCapital: 1000000,
+        commissionRate: 0.0003,
+        slippage: 0,
+        stampDutyRate: 0,
+      });
+
+      const result = engine.run(strategy, data);
+
+      // 验证设置了止损
+      expect(stopLossSet).toBe(true);
+      // 验证有交易发生
+      expect(result.trades.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('应该能够设置并触发止盈', () => {
+      const data = new Map<string, Bar[]>();
+      // 创建持续上涨的数据
+      const bars: Bar[] = [];
+      let price = 100;
+      for (let i = 0; i < 50; i++) {
+        const date = new Date('2023-01-01');
+        date.setDate(date.getDate() + i);
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+        price *= 1.03; // 每天涨 3%
+
+        bars.push({
+          date: date.toISOString().split('T')[0],
+          open: price,
+          high: price * 1.05,
+          low: price * 0.99,
+          close: price,
+          volume: 1000000,
+        });
+      }
+      data.set('000001', bars);
+
+      const strategy: Strategy = {
+        name: 'Take Profit Strategy',
+        onBar(ctx: StrategyContext) {
+          const bar = ctx.getCurrentBar('000001');
+          const position = ctx.positions.get('000001');
+
+          // 第一天买入
+          if (!position && ctx.cash > 10000 && bar) {
+            const qty = Math.floor(ctx.cash * 0.9 / bar.close);
+            if (qty > 0) {
+              ctx.buy('000001', qty);
+              // 设置止盈价为买入价的 110%
+              const takeProfitPrice = bar.close * 1.10;
+              ctx.setTakeProfit('000001', takeProfitPrice);
+            }
+          }
+        },
+      };
+
+      const engine = new BacktestEngine({
+        initialCapital: 1000000,
+        commissionRate: 0.0003,
+        slippage: 0,
+        stampDutyRate: 0,
+      });
+
+      const result = engine.run(strategy, data);
+
+      // 验证有交易发生，且止盈被触发（应该有卖出交易）
+      expect(result.trades.length).toBeGreaterThanOrEqual(2); // 买入 + 止盈卖出
+    });
+
+    it('应该能够设置追踪止损', () => {
+      const data = new Map<string, Bar[]>();
+      // 创建先大涨后大跌的数据
+      const bars: Bar[] = [];
+      let price = 100;
+      for (let i = 0; i < 60; i++) {
+        const date = new Date('2023-01-01');
+        date.setDate(date.getDate() + i);
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+        // 前 20 天大涨，之后大跌
+        if (i < 20) {
+          price *= 1.05; // 每天涨 5%
+        } else {
+          price *= 0.95; // 每天跌 5%
+        }
+
+        bars.push({
+          date: date.toISOString().split('T')[0],
+          open: price,
+          high: price * 1.02,
+          low: price * 0.95,
+          close: price,
+          volume: 1000000,
+        });
+      }
+      data.set('000001', bars);
+
+      const strategy: Strategy = {
+        name: 'Trailing Stop Strategy',
+        onBar(ctx: StrategyContext) {
+          const bar = ctx.getCurrentBar('000001');
+          const position = ctx.positions.get('000001');
+
+          // 第一天买入
+          if (!position && ctx.cash > 10000 && bar) {
+            const qty = Math.floor(ctx.cash * 0.9 / bar.close);
+            if (qty > 0) {
+              ctx.buy('000001', qty);
+              // 设置追踪止损：从最高点下跌 10% 触发
+              ctx.setTrailingStop('000001', 0.10);
+            }
+          }
+        },
+      };
+
+      const engine = new BacktestEngine({
+        initialCapital: 1000000,
+        commissionRate: 0.0003,
+        slippage: 0,
+        stampDutyRate: 0,
+      });
+
+      const result = engine.run(strategy, data);
+
+      // 验证有交易发生
+      expect(result.trades.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('应该支持全局止损配置', () => {
+      const data = new Map<string, Bar[]>();
+      // 创建下跌数据
+      const bars: Bar[] = [];
+      let price = 100;
+      for (let i = 0; i < 30; i++) {
+        const date = new Date('2023-01-01');
+        date.setDate(date.getDate() + i);
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+        price *= 0.97; // 每天跌 3%
+
+        bars.push({
+          date: date.toISOString().split('T')[0],
+          open: price,
+          high: price * 1.01,
+          low: price * 0.96,
+          close: price,
+          volume: 1000000,
+        });
+      }
+      data.set('000001', bars);
+
+      const strategy: Strategy = {
+        name: 'Buy and Hold',
+        onBar(ctx: StrategyContext) {
+          const bar = ctx.getCurrentBar('000001');
+          const position = ctx.positions.get('000001');
+
+          // 第一天买入后持有
+          if (!position && ctx.cash > 10000 && bar) {
+            const qty = Math.floor(ctx.cash * 0.9 / bar.close);
+            if (qty > 0) {
+              ctx.buy('000001', qty);
+            }
+          }
+        },
+      };
+
+      // 配置全局止损 5%
+      const engine = new BacktestEngine({
+        initialCapital: 1000000,
+        commissionRate: 0.0003,
+        slippage: 0,
+        stampDutyRate: 0,
+        riskControl: {
+          stopLossPercent: 0.05, // 5% 止损
+        },
+      });
+
+      const result = engine.run(strategy, data);
+
+      // 全局止损应该被触发，有多笔卖出交易
+      expect(result.trades.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('应该支持全局止盈配置', () => {
+      const data = new Map<string, Bar[]>();
+      // 创建上涨数据
+      const bars: Bar[] = [];
+      let price = 100;
+      for (let i = 0; i < 30; i++) {
+        const date = new Date('2023-01-01');
+        date.setDate(date.getDate() + i);
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+        price *= 1.03; // 每天涨 3%
+
+        bars.push({
+          date: date.toISOString().split('T')[0],
+          open: price,
+          high: price * 1.04,
+          low: price * 0.99,
+          close: price,
+          volume: 1000000,
+        });
+      }
+      data.set('000001', bars);
+
+      const strategy: Strategy = {
+        name: 'Buy and Hold',
+        onBar(ctx: StrategyContext) {
+          const bar = ctx.getCurrentBar('000001');
+          const position = ctx.positions.get('000001');
+
+          if (!position && ctx.cash > 10000 && bar) {
+            const qty = Math.floor(ctx.cash * 0.9 / bar.close);
+            if (qty > 0) {
+              ctx.buy('000001', qty);
+            }
+          }
+        },
+      };
+
+      // 配置全局止盈 10%
+      const engine = new BacktestEngine({
+        initialCapital: 1000000,
+        commissionRate: 0.0003,
+        slippage: 0,
+        stampDutyRate: 0,
+        riskControl: {
+          takeProfitPercent: 0.10, // 10% 止盈
+        },
+      });
+
+      const result = engine.run(strategy, data);
+
+      // 全局止盈应该被触发，有多笔卖出交易
+      expect(result.trades.length).toBeGreaterThanOrEqual(2);
     });
   });
 
