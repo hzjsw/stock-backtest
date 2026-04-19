@@ -19,6 +19,8 @@ import type {
   Pivot,
   BuySellPoint,
   ChanTheoryResult,
+  StrokeDirection,
+  SegmentDirection,
 } from '../../packages/types';
 
 /**

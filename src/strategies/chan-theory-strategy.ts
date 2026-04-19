@@ -9,7 +9,10 @@
  */
 
 import type { Strategy, StrategyContext, Bar, ChanTheoryResult } from '../../packages/types';
-import { analyzeChanTheory } from '../indicators/chan-theory';
+import { analyzeChanTheory as analyzeChanTheoryCore } from '../indicators/chan-theory';
+
+// 重新导出 analyzeChanTheory
+export const analyzeChanTheory = analyzeChanTheoryCore;
 
 /** 缠论策略配置 */
 export interface ChanTheoryStrategyConfig {
@@ -68,7 +71,7 @@ export function createChanTheoryStrategy(
       if (bars.length < cfg.minBarsForAnalysis) return;
 
       // 执行缠论分析
-      const chanResult = analyzeChanTheory(bars);
+      const chanResult = analyzeChanTheoryCore(bars);
 
       // 如果没有买卖点，返回
       if (chanResult.buySellPoints.length === 0) return;

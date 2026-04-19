@@ -30,7 +30,7 @@ import {
 import { fetchStockData, fetchMultipleStocks } from '../data/web-loader';
 import { logger, ValidationError, DataError } from '../lib/logger';
 import { MultiFactorScorer, MomentumFactor, VolatilityFactor, MADeviationFactor, VolumeRatioFactor } from '../factors';
-import type { ChanTheoryResult } from '../packages/types';
+import type { ChanTheoryResult, StrategyType } from 'packages/types';
 
 const PORT = 3001;
 
@@ -525,8 +525,11 @@ export function handleBacktest(body: BacktestRequest) {
     data = filteredData;
   }
 
+  // Get first symbol for strategy
+  const firstSymbol = data.size > 0 ? Array.from(data.keys())[0] : '000001';
+
   // Create strategy with correct symbol
-  switch (body.strategy) {
+  switch (body.strategy as string) {
     case 'ma-crossover':
       strategy = createMACrossover(p.shortPeriod || 5, p.longPeriod || 20, firstSymbol);
       if (data.size === 0) {
@@ -585,10 +588,10 @@ export function handleBacktest(body: BacktestRequest) {
         data.set('000001', generateStockData('000001'));
       }
       strategy = createChanTheoryStrategy({
-        enableBuy1: p.enableBuy1 !== false,
-        enableBuy2: p.enableBuy2 !== false,
-        enableBuy3: p.enableBuy3 !== false,
-        enableSell1: p.enableSell1 !== false,
+        enableBuy1: Boolean(p.enableBuy1 ?? 1),
+        enableBuy2: Boolean(p.enableBuy2 ?? 1),
+        enableBuy3: Boolean(p.enableBuy3 ?? 1),
+        enableSell1: Boolean(p.enableSell1 ?? 1),
         positionPercent: p.positionPercent ?? 0.8,
         stopLossPercent: p.stopLossPercent ?? 0.05,
         takeProfitPercent: p.takeProfitPercent ?? 0.15,
