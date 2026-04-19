@@ -360,31 +360,30 @@ function identifyBuySellPoints(
 
   if (strokes.length < 2) return buySellPoints;
 
-  // 识别一类买点（底背离）
-  for (let i = 2; i < strokes.length; i += 2) {
-    const prevStroke = strokes[i - 2];
+  // 识别一类买点（底背离）- 连续两个向上笔，后一个起点低于前一个起点
+  // 修改：使用确认日期（第二笔完成时的日期）
+  for (let i = 1; i < strokes.length; i++) {
+    const prevStroke = strokes[i - 1];
     const currStroke = strokes[i];
 
-    // 都是向上笔
+    // 都是向上笔，且当前笔起点低于前一笔起点（底背离）
     if (prevStroke.direction === 1 && currStroke.direction === 1) {
-      // 价格创新低
       if (currStroke.startPoint < prevStroke.startPoint) {
-        // 简化：假设力度减弱（实际需要用 MACD 等指标判断）
         buySellPoints.push({
           type: 'buy1',
-          date: currStroke.startDate,
+          date: currStroke.endDate, // 使用第二笔的终点日期（确认日期）
           price: currStroke.startPoint,
           fractal: currStroke.startFractal,
         });
       }
     }
 
-    // 识别一类卖点（顶背离）
+    // 都是向下笔，且当前笔起点高于前一笔起点（顶背离）
     if (prevStroke.direction === -1 && currStroke.direction === -1) {
       if (currStroke.startPoint > prevStroke.startPoint) {
         buySellPoints.push({
           type: 'sell1',
-          date: currStroke.startDate,
+          date: currStroke.endDate, // 使用第二笔的终点日期
           price: currStroke.startPoint,
           fractal: currStroke.startFractal,
         });
@@ -393,15 +392,18 @@ function identifyBuySellPoints(
   }
 
   // 识别二类买点（回踩不破前低）
-  for (let i = 1; i < strokes.length; i++) {
+  // 逻辑：找到每个向下笔，如果它结束于某个 buy1 点之上，则是 buy2
+  for (let i = 0; i < strokes.length; i++) {
     const stroke = strokes[i];
-    const prevStroke = strokes[i - 1];
 
-    // 向下笔回踩
-    if (stroke.direction === -1 && prevStroke.direction === 1) {
-      // 检查是否在前一类买点之上
-      const buy1 = buySellPoints.find(bp => bp.type === 'buy1');
-      if (buy1 && stroke.endPoint > buy1.price) {
+    // 向下笔结束
+    if (stroke.direction === -1) {
+      // 检查是否有 buy1 点在它之前
+      const prevBuy1 = buySellPoints.filter(
+        bp => bp.type === 'buy1' && bp.date < stroke.endDate
+      ).pop(); // 取最近的一个
+
+      if (prevBuy1 && stroke.endPoint > prevBuy1.price) {
         buySellPoints.push({
           type: 'buy2',
           date: stroke.endDate,
@@ -413,14 +415,16 @@ function identifyBuySellPoints(
   }
 
   // 识别二类卖点（反弹不过前高）
-  for (let i = 1; i < strokes.length; i++) {
+  for (let i = 0; i < strokes.length; i++) {
     const stroke = strokes[i];
-    const prevStroke = strokes[i - 1];
 
-    // 向上笔反弹
-    if (stroke.direction === 1 && prevStroke.direction === -1) {
-      const sell1 = buySellPoints.find(bp => bp.type === 'sell1');
-      if (sell1 && stroke.endPoint < sell1.price) {
+    // 向上笔结束
+    if (stroke.direction === 1) {
+      const prevSell1 = buySellPoints.filter(
+        bp => bp.type === 'sell1' && bp.date < stroke.startDate
+      ).pop();
+
+      if (prevSell1 && stroke.endPoint < prevSell1.price) {
         buySellPoints.push({
           type: 'sell2',
           date: stroke.endDate,
@@ -433,7 +437,6 @@ function identifyBuySellPoints(
 
   // 识别三类买卖点（中枢突破回踩）
   for (const pivot of pivots) {
-    // 找到中枢后的第一个向上/向下笔
     const pivotEndDate = pivot.endDate;
 
     for (let i = 0; i < strokes.length; i++) {
@@ -443,7 +446,6 @@ function identifyBuySellPoints(
       if (stroke.startDate > pivotEndDate) {
         // 三类买点：向上突破后，向下回踩不进入中枢
         if (stroke.direction === 1 && stroke.startPoint > pivot.high) {
-          // 检查后续是否有回踩
           const nextStroke = strokes[i + 1];
           if (nextStroke && nextStroke.direction === -1 && nextStroke.endPoint > pivot.high) {
             buySellPoints.push({

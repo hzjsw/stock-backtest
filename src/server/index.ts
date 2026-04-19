@@ -587,7 +587,9 @@ export function handleBacktest(body: BacktestRequest) {
         serverLogger.info('No data loaded, using mock 000001 for chan theory');
         data.set('000001', generateStockData('000001'));
       }
+      const firstSymbol = data.size > 0 ? Array.from(data.keys())[0] : '000001';
       strategy = createChanTheoryStrategy({
+        symbol: firstSymbol,
         enableBuy1: Boolean(p.enableBuy1 ?? 1),
         enableBuy2: Boolean(p.enableBuy2 ?? 1),
         enableBuy3: Boolean(p.enableBuy3 ?? 1),
