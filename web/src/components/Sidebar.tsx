@@ -27,10 +27,16 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
   const [stopLossPercent, setStopLossPercent] = useState(0.05)
   const [takeProfitPercent, setTakeProfitPercent] = useState(0.15)
   const [trailingStopPercent, setTrailingStopPercent] = useState(0.08)
-  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null)
+  // 优先使用构建时注入的版本信息，如果没有则从 API 获取
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(
+    typeof __VERSION_INFO__ !== 'undefined' ? __VERSION_INFO__ : null
+  )
 
   useEffect(() => {
-    getVersionInfo().then(setVersionInfo).catch(console.error)
+    // 如果构建时没有注入版本信息，则从 API 获取
+    if (!versionInfo) {
+      getVersionInfo().then(setVersionInfo).catch(console.error)
+    }
   }, [])
 
   const currentStrategy = STRATEGY_OPTIONS.find(s => s.type === selectedStrategy)!
