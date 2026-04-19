@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(pkill -f \"ts-node src/server\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(taskkill /FI \"WINDOWTITLE eq Node*\")",
+      "Bash(start cmd:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node -e ':*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3001)",
+      "Bash(taskkill /F /PID 6588)",
+      "Bash(taskkill:*)",
+      "Bash(npm test:*)",
+      "Bash(cmd:*)",
+      "Bash(Stop-Process -Id 1764 -Force)"
+    ]
+  }
+}

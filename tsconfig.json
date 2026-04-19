@@ -15,6 +15,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
+      "@shared/*": ["packages/types/*"],
       "@core/*": ["src/core/*"],
       "@data/*": ["src/data/*"],
       "@indicators/*": ["src/indicators/*"],
@@ -24,6 +25,6 @@
       "@visualization/*": ["src/visualization/*"]
     }
   },
-  "include": ["src/**/*", "examples/**/*"],
+  "include": ["src/**/*", "examples/**/*", "packages/types/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import type { Trade } from '@/types/backtest'
+import { getStockNameOrDefault } from '@stock-backtest/stock-names'
 
 interface TradeTableProps {
   trades: Trade[]
@@ -26,7 +27,7 @@ export function TradeTable({ trades }: TradeTableProps) {
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="text-left py-2.5 px-3 font-medium">日期</th>
-                <th className="text-left py-2.5 px-3 font-medium">代码</th>
+                <th className="text-left py-2.5 px-3 font-medium">股票</th>
                 <th className="text-center py-2.5 px-3 font-medium">方向</th>
                 <th className="text-right py-2.5 px-3 font-medium">数量</th>
                 <th className="text-right py-2.5 px-3 font-medium">价格</th>
@@ -35,10 +36,18 @@ export function TradeTable({ trades }: TradeTableProps) {
               </tr>
             </thead>
             <tbody>
-              {displayed.map((trade, i) => (
+              {displayed.map((trade, i) => {
+                const stockName = getStockNameOrDefault(trade.symbol);
+                const hasName = stockName !== trade.symbol;
+                return (
                 <tr key={trade.id || i} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
                   <td className="py-2 px-3 num text-xs text-muted-foreground">{trade.date}</td>
-                  <td className="py-2 px-3 num text-xs font-medium text-foreground">{trade.symbol}</td>
+                  <td className="py-2 px-3">
+                    <div className="text-xs font-medium text-foreground num">{trade.symbol}</div>
+                    <div className={`text-[10px] ${hasName ? 'text-muted-foreground' : 'text-orange-400/80'}`}>
+                      {hasName ? stockName : '(未识别)'}
+                    </div>
+                  </td>
                   <td className="py-2 px-3 text-center">
                     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                       trade.side === 'buy' ? 'text-profit bg-profit/10' : 'text-loss bg-loss/10'
@@ -56,7 +65,8 @@ export function TradeTable({ trades }: TradeTableProps) {
                     {trade.pnl !== undefined ? trade.pnl.toFixed(2) : '-'}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

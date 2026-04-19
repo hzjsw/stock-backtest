@@ -20,6 +20,8 @@ export type {
   BacktestResult,
   FactorData,
   Factor,
+  RiskOrder,
+  RiskOrderType,
 } from './core/types';
 
 // 数据加载

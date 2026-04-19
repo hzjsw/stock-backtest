@@ -15,10 +15,12 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
+    "noUncheckedSideEffectImports": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@stock-backtest/types": ["../packages/types"],
+      "@stock-backtest/stock-names": ["../packages/stock-names"]
     }
   },
   "include": ["src"]

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import type { DataSourceConfig } from '@/types/backtest'
 import { SECTOR_OPTIONS, type SectorInfo } from '@/types/backtest'
 import { apiUrl } from '@/lib/api'
+import { getStockNameOrDefault } from '@stock-backtest/stock-names'
 
 interface DataFile {
   filename: string
@@ -228,16 +229,29 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
         throw new Error(result.message)
       }
 
-      onChange({
-        type: 'online',
-        symbols: result.data.map((d: any) => d.symbol),
-        onlineConfig: {
-          source: dataSource,
-          symbolsStr: onlineSymbols,
-          startDate,
-          endDate,
-        },
-      })
+      // 如果自动保存，切换到 csv-directory 类型并刷新文件列表
+      if (autoSave) {
+        // 刷新文件列表
+        await loadDataFiles()
+        // 切换到 CSV 目录模式
+        onChange({
+          type: 'csv-directory',
+          filePath: 'data',
+          symbols: result.data.map((d: any) => d.symbol),
+        })
+      } else {
+        // 不保存则保持 online 类型
+        onChange({
+          type: 'online',
+          symbols: result.data.map((d: any) => d.symbol),
+          onlineConfig: {
+            source: dataSource,
+            symbolsStr: onlineSymbols,
+            startDate,
+            endDate,
+          },
+        })
+      }
 
       let message = `✓ 成功获取 ${result.data.length} 只股票的数据`
       if (result.savedTo) {
@@ -250,7 +264,7 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
     } finally {
       setIsFetching(false)
     }
-  }, [onlineSymbols, startDate, endDate, dataSource, autoSave, onChange])
+  }, [onlineSymbols, startDate, endDate, dataSource, autoSave, onChange, loadDataFiles])
 
   return (
     <div className="space-y-3">
@@ -476,7 +490,10 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
                   </div>
 
                   <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-1">
-                    {dataFiles.map(file => (
+                    {dataFiles.map(file => {
+                      const stockName = getStockNameOrDefault(file.symbol);
+                      const hasName = stockName !== file.symbol;
+                      return (
                       <label
                         key={file.filename}
                         className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${
@@ -493,13 +510,17 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
                           <div className="flex items-center gap-1">
                             <FileText className="w-3 h-3 text-muted-foreground" />
                             <span className="text-xs font-medium">{file.symbol}</span>
+                            <span className={`text-[10px] ${hasName ? 'text-muted-foreground' : 'text-orange-400'}`}>
+                              {hasName ? stockName : '(未识别)'}
+                            </span>
                           </div>
                           <div className="text-[10px] text-muted-foreground">
                             {file.bars} 条 | {file.startDate} ~ {file.endDate}
                           </div>
                         </div>
                       </label>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <Button
@@ -614,15 +635,22 @@ export function DataSourcePanel({ config, onChange }: DataSourceProps) {
           <div className="mt-3">
             <label className="sidebar-label">已加载股票</label>
             <div className="flex flex-wrap gap-1.5">
-              {config.symbols.map((sym: string) => (
+              {config.symbols.map((sym: string) => {
+                const stockName = getStockNameOrDefault(sym);
+                const hasName = stockName !== sym;
+                return (
                 <span
                   key={sym}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-secondary border border-border"
                 >
                   <FileText className="w-3 h-3" />
                   {sym}
+                  <span className={`text-[10px] ${hasName ? 'text-muted-foreground' : 'text-orange-400'}`}>
+                    {hasName ? stockName : '(未识别)'}
+                  </span>
                 </span>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

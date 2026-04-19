@@ -1,42 +1,27 @@
-/** 前端类型定义 */
+/**
+ * 前端类型定义
+ *
+ * 注意：核心类型已从 @stock-backtest/types 包导入
+ * 本地仅保留前端特有的配置和常量
+ */
 
-/** K 线数据 */
-export interface Bar {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+import type { StrategyOption, SectorInfo } from '@stock-backtest/types';
 
-/** 策略类型 */
-export type StrategyType =
-  | 'ma-crossover'
-  | 'macd'
-  | 'rsi'
-  | 'bollinger'
-  | 'multi-factor'
-  | 'dual-thrust'
-  | 'parabolic-sar';
-
-/** 策略参数配置 */
-export interface StrategyParam {
-  key: string;
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-}
-
-/** 策略选项 */
-export interface StrategyOption {
-  type: StrategyType;
-  name: string;
-  description: string;
-  params: StrategyParam[];
-}
+// 从共享包导入核心类型
+export type {
+  Bar,
+  StrategyType,
+  StrategyParam,
+  DataSourceConfig,
+  BacktestRequest,
+  Position,
+  PortfolioSnapshot,
+  PerformanceMetrics,
+  BacktestConfig,
+  Trade,
+  BacktestResult,
+  SectorInfo,
+} from '@stock-backtest/types';
 
 /** 策略选项配置 */
 export const STRATEGY_OPTIONS: StrategyOption[] = [
@@ -110,118 +95,7 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
       { key: 'afMax', label: '最大加速因子', value: 0.2, min: 0.1, max: 0.5, step: 0.05 },
     ],
   },
-]
-
-/** 数据源配置 */
-export interface DataSourceConfig {
-  type: 'csv-file' | 'csv-directory' | 'mock' | 'online' | 'sector';
-  filePath?: string;
-  symbols?: string[];
-  onlineConfig?: {
-    source: 'netease' | 'eastmoney' | 'sina' | 'tushare';
-    symbolsStr: string;
-    startDate: string;
-    endDate: string;
-    token?: string;
-  };
-}
-
-/** 回测请求参数 */
-export interface BacktestRequest {
-  strategy: StrategyType;
-  strategyParams: Record<string, number>;
-  dataSource: DataSourceConfig;
-  config: {
-    initialCapital: number;
-    commissionRate: number;
-    stampDutyRate: number;
-    slippage: number;
-  };
-  dateRange?: {
-    startDate?: string;
-    endDate?: string;
-  };
-}
-
-/** 持仓 */
-export interface Position {
-  symbol: string;
-  quantity: number;
-  avgCost: number;
-  currentPrice: number;
-  unrealizedPnl: number;
-  realizedPnl: number;
-}
-
-/** 投资组合快照 */
-export interface PortfolioSnapshot {
-  date: string;
-  totalValue: number;
-  cash: number;
-  positionsValue: number;
-  positions: Position[];
-  dailyReturn: number;
-}
-
-/** 绩效指标 */
-export interface PerformanceMetrics {
-  totalReturn: number;
-  annualizedReturn: number;
-  sharpeRatio: number;
-  maxDrawdown: number;
-  maxDrawdownDays: number;
-  winRate: number;
-  profitLossRatio: number;
-  totalTrades: number;
-  winningTrades: number;
-  losingTrades: number;
-  avgDailyReturn: number;
-  dailyReturnStd: number;
-  annualizedVolatility: number;
-  calmarRatio: number;
-  sortinoRatio: number;
-}
-
-/** 交易记录 */
-export interface Trade {
-  id: string;
-  symbol: string;
-  side: 'buy' | 'sell';
-  quantity: number;
-  price: number;
-  commission: number;
-  date: string;
-  pnl?: number;
-}
-
-/** 回测配置 */
-export interface BacktestConfig {
-  initialCapital: number;
-  commissionRate: number;
-  stampDutyRate: number;
-  slippage: number;
-  startDate: string;
-  endDate: string;
-  benchmark?: string;
-}
-
-/** 回测结果 */
-export interface BacktestResult {
-  strategyName: string;
-  config: BacktestConfig;
-  metrics: PerformanceMetrics;
-  portfolioHistory: PortfolioSnapshot[];
-  trades: Trade[];
-  benchmarkHistory?: { date: string; value: number }[];
-}
-
-/** 板块信息 */
-export interface SectorInfo {
-  code: string
-  name: string
-  symbolCount: number
-  symbols: string[]
-}
+];
 
 /** 板块选项 */
 export const SECTOR_OPTIONS: SectorInfo[] = [
@@ -336,4 +210,4 @@ export const SECTOR_OPTIONS: SectorInfo[] = [
       '601989', '601991', '601992',
     ],
   },
-]
+];

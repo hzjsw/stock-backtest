@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Play, Settings, TrendingUp, Loader2, Calendar } from 'lucide-react'
+import { Play, Settings, TrendingUp, Loader2, Calendar, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { STRATEGY_OPTIONS, type StrategyType, type BacktestRequest, type BacktestResult, type DataSourceConfig } from '@/types/backtest'
+import { STRATEGY_OPTIONS, type StrategyType, type BacktestRequest, type BacktestResult, type DataSourceConfig, type StrategyParam } from '@/types/backtest'
 import { DataSourcePanel } from '@/components/DataSourcePanel'
 
 interface SidebarProps {
@@ -21,6 +21,11 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
   // Date range state
   const [backtestStartDate, setBacktestStartDate] = useState('')
   const [backtestEndDate, setBacktestEndDate] = useState('')
+  // Risk control state
+  const [useRiskControl, setUseRiskControl] = useState(false)
+  const [stopLossPercent, setStopLossPercent] = useState(0.05)
+  const [takeProfitPercent, setTakeProfitPercent] = useState(0.15)
+  const [trailingStopPercent, setTrailingStopPercent] = useState(0.08)
 
   const currentStrategy = STRATEGY_OPTIONS.find(s => s.type === selectedStrategy)!
 
@@ -28,7 +33,7 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
     setSelectedStrategy(type)
     const option = STRATEGY_OPTIONS.find(s => s.type === type)!
     const defaults: Record<string, number> = {}
-    option.params.forEach(p => { defaults[p.key] = p.value })
+    option.params.forEach((p: StrategyParam) => { defaults[p.key] = p.value })
     setStrategyParams(defaults)
   }
 
@@ -43,12 +48,25 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
   const handleRun = () => {
     onRunBacktest({
       strategy: selectedStrategy,
-      strategyParams: currentStrategy.params.reduce((acc, p) => {
+      strategyParams: currentStrategy.params.reduce((acc: Record<string, number>, p: StrategyParam) => {
         acc[p.key] = getParamValue(p.key, p.value)
         return acc
       }, {} as Record<string, number>),
       dataSource,
-      config: { initialCapital, commissionRate, stampDutyRate, slippage },
+      config: {
+        initialCapital,
+        commissionRate,
+        stampDutyRate,
+        slippage,
+        // Risk control config
+        ...(useRiskControl ? {
+          riskControl: {
+            stopLossPercent,
+            takeProfitPercent,
+            trailingStopPercent,
+          }
+        } : {}),
+      },
       // Include date range if specified
       ...(backtestStartDate || backtestEndDate ? {
         dateRange: {
@@ -106,7 +124,7 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
           <Settings className="w-3 h-3" /> 策略参数
         </label>
         <div className="space-y-3">
-          {currentStrategy.params.map(param => (
+          {currentStrategy.params.map((param: StrategyParam) => (
             <div key={param.key}>
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-muted-foreground">{param.label}</span>
@@ -162,6 +180,45 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
               onChange={e => setSlippage(Number(e.target.value))} step={0.0001} min={0} />
           </div>
         </div>
+      </div>
+
+      {/* Risk Control */}
+      <div className="sidebar-section px-5">
+        <div className="flex items-center gap-1.5 mb-3">
+          <Shield className="w-3 h-3" style={{ color: 'hsl(var(--gold))' }} />
+          <label className="sidebar-label flex-1">风险控制</label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useRiskControl}
+              onChange={e => setUseRiskControl(e.target.checked)}
+              className="w-3 h-3 rounded"
+            />
+            <span className="text-xs text-muted-foreground">启用</span>
+          </label>
+        </div>
+        {useRiskControl && (
+          <div className="space-y-3">
+            <div>
+              <span className="text-xs text-muted-foreground block mb-1">止损比例 (%)</span>
+              <input type="number" className="input-field num text-xs" value={stopLossPercent * 100}
+                onChange={e => setStopLossPercent(Number(e.target.value) / 100)} step={1} min={1} max={50} />
+              <p className="text-[10px] text-muted-foreground mt-1">买入价下跌超过此比例自动止损</p>
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground block mb-1">止盈比例 (%)</span>
+              <input type="number" className="input-field num text-xs" value={takeProfitPercent * 100}
+                onChange={e => setTakeProfitPercent(Number(e.target.value) / 100)} step={1} min={1} max={200} />
+              <p className="text-[10px] text-muted-foreground mt-1">买入价上涨超过此比例自动止盈</p>
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground block mb-1">追踪止损 (%)</span>
+              <input type="number" className="input-field num text-xs" value={trailingStopPercent * 100}
+                onChange={e => setTrailingStopPercent(Number(e.target.value) / 100)} step={1} min={1} max={50} />
+              <p className="text-[10px] text-muted-foreground mt-1">从最高点下跌超过此比例自动卖出</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Date Range Selection */}

@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@stock-backtest/types': path.resolve(__dirname, '../packages/types'),
+      '@stock-backtest/stock-names': path.resolve(__dirname, '../packages/stock-names'),
     },
   },
   server: {

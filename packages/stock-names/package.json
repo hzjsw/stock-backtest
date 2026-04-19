@@ -1,0 +1,8 @@
+{
+  "name": "@stock-backtest/stock-names",
+  "version": "1.0.0",
+  "description": "中国 A 股股票代码名称映射",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true
+}

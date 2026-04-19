@@ -27,6 +27,7 @@ import {
 } from '../index';
 import { fetchStockData, fetchMultipleStocks } from '../data/web-loader';
 import { logger, ValidationError, DataError } from '../lib/logger';
+import { MultiFactorScorer, MomentumFactor, VolatilityFactor, MADeviationFactor, VolumeRatioFactor } from '../factors';
 
 const PORT = 3001;
 
@@ -157,7 +158,13 @@ function createMACrossover(shortPeriod: number, longPeriod: number, symbol: stri
 
       if (ps <= pl && cs > cl && !pos) {
         const qty = Math.floor((ctx.cash * 0.8) / bar.close);
-        if (qty > 0) ctx.buy(symbol, qty);
+        if (qty > 0) {
+          ctx.buy(symbol, qty);
+          // 设置止损：买入价下跌 5% 止损
+          ctx.setStopLoss(symbol, bar.close * 0.95);
+          // 设置止盈：买入价上涨 15% 止盈
+          ctx.setTakeProfit(symbol, bar.close * 1.15);
+        }
       }
       if (ps >= pl && cs < cl && pos && pos.quantity > 0) {
         ctx.sell(symbol, pos.quantity);
@@ -251,27 +258,101 @@ function createBollingerStrategy(period: number, stdDev: number, symbol: string 
   };
 }
 
-function createMultiFactorStrategy(params: Record<string, number>): Strategy {
+function createMultiFactorStrategy(params: Record<string, number>, allBars: Map<string, Bar[]>): Strategy {
   const topN = params.topN ?? 3;
-  let lastRebalanceMonth = '';
+  const momentumWeight = params.momentumWeight ?? 0.3;
+  const volatilityWeight = params.volatilityWeight ?? 0.2;
+  const maDeviationWeight = params.maDeviationWeight ?? 0.25;
+  const volumeRatioWeight = params.volumeRatioWeight ?? 0.25;
+
+  let lastRebalanceDate = '';
+  const rebalanceInterval = 20; // 每 20 个交易日调仓一次
+  let barCount = 0;
+
+  // 创建多因子打分器
+  const scorer = new MultiFactorScorer();
+  scorer.addFactor(MomentumFactor(20), momentumWeight, false); // 动量越大越好
+  scorer.addFactor(VolatilityFactor(20), volatilityWeight, true); // 波动率越小越好
+  scorer.addFactor(MADeviationFactor(20), maDeviationWeight, false); // 偏离越大越好
+  scorer.addFactor(VolumeRatioFactor(5, 20), volumeRatioWeight, false); // 量比越大越好
+
+  // 记录当前持仓股票
+  let currentHoldings: string[] = [];
 
   return {
     name: `Multi-Factor Strategy (Top${topN})`,
+    init(ctx: StrategyContext) {
+      barCount = 0;
+      currentHoldings = [];
+    },
     onBar(ctx: StrategyContext) {
-      const date = ctx.getCurrentBar('000001')?.date || '';
-      const month = date.slice(0, 7);
-      if (month === lastRebalanceMonth) return;
-      lastRebalanceMonth = month;
+      barCount++;
+      const date = ctx.currentDate;
 
-      const symbol = '000001';
-      const bar = ctx.getCurrentBar(symbol);
-      if (!bar) return;
-      const pos = ctx.positions.get(symbol);
-
-      if (!pos && ctx.cash > 0) {
-        const qty = Math.floor((ctx.cash * 0.8) / bar.close);
-        if (qty > 0) ctx.buy(symbol, qty);
+      // 调仓日：到达间隔或首次运行
+      if (barCount < rebalanceInterval && currentHoldings.length > 0) {
+        // 更新当前持仓股票的价格
+        for (const symbol of currentHoldings) {
+          const pos = ctx.positions.get(symbol);
+          if (pos) {
+            const bar = ctx.getCurrentBar(symbol);
+            if (bar) pos.currentPrice = bar.close;
+          }
+        }
+        return;
       }
+
+      lastRebalanceDate = date;
+      barCount = 0;
+
+      // 使用到当前为止的所有历史数据进行打分
+      const historicalBars = new Map<string, Bar[]>();
+      for (const [symbol, allSymbolBars] of allBars) {
+        // 只使用到当前日期的数据，防止未来数据泄漏
+        const currentBar = ctx.getCurrentBar(symbol);
+        if (currentBar) {
+          const barsUpToNow = allSymbolBars.filter(b => b.date <= currentBar.date);
+          if (barsUpToNow.length >= 30) { // 至少需要 30 天数据才能计算因子
+            historicalBars.set(symbol, barsUpToNow);
+          }
+        }
+      }
+
+      // 因子打分并选股
+      const selectedSymbols = scorer.selectTop(historicalBars, topN);
+
+      logger.debug(`Rebalancing: selected ${selectedSymbols.length} stocks`, selectedSymbols);
+
+      // 卖出不在选中列表中的股票
+      for (const [symbol, position] of ctx.positions) {
+        if (!selectedSymbols.includes(symbol) && position.quantity > 0) {
+          ctx.sell(symbol, position.quantity);
+          logger.debug(`Selling ${symbol}: not in top ${topN}`);
+        }
+      }
+
+      // 买入选中的股票（等权重配置）
+      const targetValuePerStock = ctx.totalValue * 0.8 / selectedSymbols.length; // 80% 仓位
+
+      for (const symbol of selectedSymbols) {
+        const bar = ctx.getCurrentBar(symbol);
+        if (!bar) continue;
+
+        const position = ctx.positions.get(symbol);
+        const currentValue = position ? position.quantity * bar.close : 0;
+        const targetValue = targetValuePerStock;
+        const diff = targetValue - currentValue;
+
+        if (diff > bar.close * 2) { // 差异大于 2 股才操作
+          const qty = Math.floor(diff / bar.close);
+          if (qty > 0 && ctx.cash > bar.close * qty * 1.01) { // 检查资金
+            ctx.buy(symbol, qty);
+            logger.debug(`Buying ${symbol}: ${qty} shares @ ${bar.close}`);
+          }
+        }
+      }
+
+      currentHoldings = selectedSymbols;
     },
   };
 }
@@ -350,13 +431,22 @@ function createParabolicSARStrategy(afStart: number, afIncrement: number, afMax:
 }
 
 // Backtest Request Handler
-function handleBacktest(body: BacktestRequest) {
+export function handleBacktest(body: BacktestRequest) {
   const engineConfig: Partial<BacktestConfig> = {
     initialCapital: body.config.initialCapital || 1000000,
     commissionRate: body.config.commissionRate ?? 0.0003,
     stampDutyRate: body.config.stampDutyRate ?? 0.001,
     slippage: body.config.slippage ?? 0.001,
+    // Risk control config
+    ...(body.config.riskControl ? {
+      riskControl: body.config.riskControl
+    } : {}),
   };
+
+  // 日志输出风险控制配置
+  if (body.config.riskControl) {
+    serverLogger.info('风险控制配置', body.config.riskControl);
+  }
 
   let strategy: Strategy;
   let data: Map<string, Bar[]>;
@@ -466,13 +556,13 @@ function handleBacktest(body: BacktestRequest) {
       }
       break;
     case 'multi-factor': {
-      strategy = createMultiFactorStrategy(p);
       if (data.size === 0) {
         serverLogger.info('No data loaded, using multi-factor mock data');
         const symbols = ['600000', '600036', '601318', '000001', '000002',
                          '000858', '002415', '300059', '600519', '601166'];
         for (const sym of symbols) data.set(sym, generateStockData(sym));
       }
+      strategy = createMultiFactorStrategy(p, data);
       break;
     }
     case 'dual-thrust':
