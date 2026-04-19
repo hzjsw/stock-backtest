@@ -304,3 +304,90 @@ export interface SectorInfo {
   symbolCount: number;
   symbols: string[];
 }
+
+// ============================================
+// 缠论类型定义
+// ============================================
+
+/** 处理后的 K 线（包含处理后） */
+export interface ProcessedBar {
+  date: string;
+  high: number;
+  low: number;
+  direction: 1 | -1 | 0; // 1=上涨，-1=下跌，0=中性
+  originalBars: Bar[]; // 包含的原始 K 线
+}
+
+/** 分型类型 */
+export type FractalType = 'top' | 'bottom';
+
+/** 分型 */
+export interface Fractal {
+  index: number;
+  date: string;
+  price: number;
+  type: FractalType;
+  barIndex: number; // 在原始 bars 中的索引
+}
+
+/** 笔的方向 */
+export type StrokeDirection = 1 | -1; // 1=向上笔，-1=向下笔
+
+/** 笔 */
+export interface Stroke {
+  id: string;
+  startFractal: Fractal;
+  endFractal: Fractal;
+  direction: StrokeDirection;
+  bars: Bar[]; // 笔覆盖的原始 K 线
+  startDate: string;
+  endDate: string;
+  startPoint: number;
+  endPoint: number;
+}
+
+/** 线段方向 */
+export type SegmentDirection = 1 | -1;
+
+/** 线段 */
+export interface Segment {
+  id: string;
+  strokes: Stroke[];
+  direction: SegmentDirection;
+  startDate: string;
+  endDate: string;
+  startPoint: number;
+  endPoint: number;
+}
+
+/** 中枢 */
+export interface Pivot {
+  id: string;
+  segments: Segment[];
+  high: number; // 中枢上沿（所有线段低点的最大值）
+  low: number;  // 中枢下沿（所有线段高点的最小值）
+  startDate: string;
+  endDate: string;
+}
+
+/** 买卖点类型 */
+export type BuySellPointType = 'buy1' | 'buy2' | 'buy3' | 'sell1' | 'sell2' | 'sell3';
+
+/** 买卖点 */
+export interface BuySellPoint {
+  type: BuySellPointType;
+  date: string;
+  price: number;
+  fractal: Fractal; // 关联的分型
+  pivot?: Pivot; // 关联的中枢
+}
+
+/** 缠论分析结果 */
+export interface ChanTheoryResult {
+  processedBars: ProcessedBar[];
+  fractals: Fractal[];
+  strokes: Stroke[];
+  segments: Segment[];
+  pivots: Pivot[];
+  buySellPoints: BuySellPoint[];
+}

@@ -385,3 +385,7 @@ export function DualThrustRange(
 
   return { upper, lower, range };
 }
+
+// Chan Theory exports
+export { analyzeChanTheory } from './chan-theory';
+export type { ProcessedBar, Fractal, Stroke, Segment, Pivot, BuySellPoint, ChanTheoryResult } from '../../packages/types';

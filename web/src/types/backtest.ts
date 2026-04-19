@@ -21,6 +21,14 @@ export type {
   Trade,
   BacktestResult,
   SectorInfo,
+  // 缠论类型
+  ProcessedBar,
+  Fractal,
+  Stroke,
+  Segment,
+  Pivot,
+  BuySellPoint,
+  ChanTheoryResult,
 } from '@stock-backtest/types';
 
 /** 策略选项配置 */
@@ -93,6 +101,18 @@ export const STRATEGY_OPTIONS: StrategyOption[] = [
       { key: 'afStart', label: '初始加速因子', value: 0.02, min: 0.01, max: 0.1, step: 0.01 },
       { key: 'afIncrement', label: '加速增量', value: 0.02, min: 0.01, max: 0.1, step: 0.01 },
       { key: 'afMax', label: '最大加速因子', value: 0.2, min: 0.1, max: 0.5, step: 0.05 },
+    ],
+  },
+  {
+    type: 'chan-theory',
+    name: '缠论策略',
+    description: '基于缠论买卖点交易，识别分型、笔、线段和中枢',
+    params: [
+      { key: 'enableBuy1', label: '启用一类买点', value: 1, min: 0, max: 1, step: 1 },
+      { key: 'enableBuy2', label: '启用二类买点', value: 1, min: 0, max: 1, step: 1 },
+      { key: 'enableBuy3', label: '启用三类买点', value: 1, min: 0, max: 1, step: 1 },
+      { key: 'stopLossPercent', label: '止损比例 (%)', value: 5, min: 1, max: 50, step: 1 },
+      { key: 'takeProfitPercent', label: '止盈比例 (%)', value: 15, min: 1, max: 200, step: 1 },
     ],
   },
 ];

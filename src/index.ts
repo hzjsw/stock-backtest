@@ -67,3 +67,18 @@ export type { LoggerConfig, LogLevel } from './lib/logger';
 // 策略优化
 export { compareStrategies, gridSearch, printComparison } from './optimizer';
 export type { BacktestSummary } from './optimizer';
+
+// 缠论策略
+export { createChanTheoryStrategy, getChanTheoryAnalysis } from './strategies/chan-theory-strategy';
+export type { ChanTheoryStrategyConfig } from './strategies/chan-theory-strategy';
+
+// 缠论类型
+export type {
+  ProcessedBar,
+  Fractal,
+  Stroke,
+  Segment,
+  Pivot,
+  BuySellPoint,
+  ChanTheoryResult,
+} from '../packages/types';

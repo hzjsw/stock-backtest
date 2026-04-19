@@ -24,10 +24,13 @@ import {
   ParabolicSAR,
   DualThrustRange,
   getIndicatorValue,
+  analyzeChanTheory,
+  createChanTheoryStrategy,
 } from '../index';
 import { fetchStockData, fetchMultipleStocks } from '../data/web-loader';
 import { logger, ValidationError, DataError } from '../lib/logger';
 import { MultiFactorScorer, MomentumFactor, VolatilityFactor, MADeviationFactor, VolumeRatioFactor } from '../factors';
+import type { ChanTheoryResult } from '../packages/types';
 
 const PORT = 3001;
 
@@ -522,9 +525,6 @@ export function handleBacktest(body: BacktestRequest) {
     data = filteredData;
   }
 
-  // Get first symbol for strategy
-  const firstSymbol = data.size > 0 ? Array.from(data.keys())[0] : '000001';
-
   // Create strategy with correct symbol
   switch (body.strategy) {
     case 'ma-crossover':
@@ -579,6 +579,23 @@ export function handleBacktest(body: BacktestRequest) {
         data.set('000001', generateStockData('000001'));
       }
       break;
+    case 'chan-theory': {
+      if (data.size === 0) {
+        serverLogger.info('No data loaded, using mock 000001 for chan theory');
+        data.set('000001', generateStockData('000001'));
+      }
+      strategy = createChanTheoryStrategy({
+        enableBuy1: p.enableBuy1 !== false,
+        enableBuy2: p.enableBuy2 !== false,
+        enableBuy3: p.enableBuy3 !== false,
+        enableSell1: p.enableSell1 !== false,
+        positionPercent: p.positionPercent ?? 0.8,
+        stopLossPercent: p.stopLossPercent ?? 0.05,
+        takeProfitPercent: p.takeProfitPercent ?? 0.15,
+        minBarsForAnalysis: p.minBarsForAnalysis ?? 30,
+      });
+      break;
+    }
     default:
       throw new Error(`Unknown strategy: ${body.strategy}`);
   }
@@ -668,6 +685,61 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/api/version') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(versionInfo));
+    return;
+  }
+
+  // Chan Theory Analysis endpoint
+  if (req.method === 'POST' && req.url === '/api/chan-analysis') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body);
+        const { symbol, filePath } = parsed;
+
+        if (!filePath && !symbol) {
+          throw new ValidationError('Missing symbol or filePath');
+        }
+
+        // Load bars
+        let bars: Bar[];
+        if (filePath) {
+          bars = loadCsvFile(filePath);
+        } else if (symbol) {
+          const dataDir = path.join(process.cwd(), 'data');
+          const csvPath = path.join(dataDir, `${symbol}.csv`);
+          if (!fs.existsSync(csvPath)) {
+            throw new DataError(`File not found: ${csvPath}`);
+          }
+          bars = loadCsvFile(csvPath);
+        } else {
+          throw new ValidationError('Invalid parameters');
+        }
+
+        // Perform Chan Theory analysis
+        const chanResult = analyzeChanTheory(bars);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          symbol,
+          bars: bars.length,
+          result: chanResult,
+        }));
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        serverLogger.error('Chan theory analysis failed', error);
+
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          error: {
+            code: error instanceof ValidationError || error instanceof DataError ? (error as any).code : 'ANALYSIS_ERROR',
+            message: error.message,
+          },
+        }));
+      }
+    });
     return;
   }
 
@@ -787,6 +859,7 @@ server.listen(PORT, () => {
   serverLogger.info('Endpoints:');
   serverLogger.info('  GET  /api/health - Health check');
   serverLogger.info('  GET  /api/version - Version info');
+  serverLogger.info('  POST /api/chan-analysis - Chan Theory analysis');
   serverLogger.info('  POST /api/backtest - Run backtest');
   serverLogger.info('  GET  /api/list-data-files - List data files');
   serverLogger.info('  POST /api/fetch-data - Fetch online data');
