@@ -21,3 +21,24 @@ export const API_CONFIG = {
     'Content-Type': 'application/json',
   },
 }
+
+/**
+ * 版本信息
+ */
+export interface VersionInfo {
+  version: string
+  releaseDate: string
+  description: string
+  author?: string
+}
+
+/**
+ * 获取版本信息
+ */
+export async function getVersionInfo(): Promise<VersionInfo> {
+  const response = await fetch(apiUrl('/api/version'))
+  if (!response.ok) {
+    throw new Error('Failed to fetch version info')
+  }
+  return response.json()
+}

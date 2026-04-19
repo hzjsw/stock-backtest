@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Play, Settings, TrendingUp, Loader2, Calendar, Shield } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Play, Settings, TrendingUp, Loader2, Calendar, Shield, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { STRATEGY_OPTIONS, type StrategyType, type BacktestRequest, type BacktestResult, type DataSourceConfig, type StrategyParam } from '@/types/backtest'
 import { DataSourcePanel } from '@/components/DataSourcePanel'
+import { getVersionInfo, type VersionInfo } from '@/lib/api'
 
 interface SidebarProps {
   onRunBacktest: (config: BacktestRequest) => void
@@ -26,6 +27,11 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
   const [stopLossPercent, setStopLossPercent] = useState(0.05)
   const [takeProfitPercent, setTakeProfitPercent] = useState(0.15)
   const [trailingStopPercent, setTrailingStopPercent] = useState(0.08)
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null)
+
+  useEffect(() => {
+    getVersionInfo().then(setVersionInfo).catch(console.error)
+  }, [])
 
   const currentStrategy = STRATEGY_OPTIONS.find(s => s.type === selectedStrategy)!
 
@@ -258,7 +264,7 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
       </div>
 
       {/* Run Button */}
-      <div className="px-5 py-4 mt-auto border-t border-border">
+      <div className="px-5 py-4 border-t border-border">
         <Button variant="gold" size="lg" className="w-full gap-2" onClick={handleRun} disabled={isLoading}>
           {isLoading ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> 回测运行中...</>
@@ -272,6 +278,35 @@ export function Sidebar({ onRunBacktest, isLoading, result }: SidebarProps) {
           </p>
         )}
       </div>
+
+      {/* Version Info */}
+      {versionInfo && (
+        <div className="px-5 py-3 border-t border-border" style={{ background: 'hsl(224 50% 4%)' }}>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground">版本</p>
+              <p className="text-xs font-semibold" style={{ color: 'hsl(var(--gold))' }}>
+                v{versionInfo.version}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground">{versionInfo.releaseDate}</p>
+              <p className="text-[10px] text-muted-foreground line-clamp-1">
+                {versionInfo.description}
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://github.com/hzjsw/stock-backtest/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground mt-2"
+          >
+            <ExternalLink className="w-2.5 h-2.5" />
+            查看 Release 说明
+          </a>
+        </div>
+      )}
     </aside>
   )
 }

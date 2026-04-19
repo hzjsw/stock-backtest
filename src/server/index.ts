@@ -587,6 +587,15 @@ export function handleBacktest(body: BacktestRequest) {
   return engine.run(strategy, data);
 }
 
+// Load version info
+let versionInfo: any = {};
+try {
+  const versionPath = path.join(__dirname, '../../VERSION.json');
+  versionInfo = JSON.parse(fs.readFileSync(versionPath, 'utf-8'));
+} catch (e) {
+  serverLogger.warn('Could not load VERSION.json');
+}
+
 // HTTP Server
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -652,6 +661,13 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok' }));
+    return;
+  }
+
+  // Version info endpoint
+  if (req.method === 'GET' && req.url === '/api/version') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(versionInfo));
     return;
   }
 
@@ -767,8 +783,10 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   serverLogger.info(`Server started on port ${PORT}`);
+  serverLogger.info(`Version: ${versionInfo.version || 'unknown'}`);
   serverLogger.info('Endpoints:');
   serverLogger.info('  GET  /api/health - Health check');
+  serverLogger.info('  GET  /api/version - Version info');
   serverLogger.info('  POST /api/backtest - Run backtest');
   serverLogger.info('  GET  /api/list-data-files - List data files');
   serverLogger.info('  POST /api/fetch-data - Fetch online data');

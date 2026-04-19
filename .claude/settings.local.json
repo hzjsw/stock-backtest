@@ -17,7 +17,8 @@
       "Bash(taskkill:*)",
       "Bash(npm test:*)",
       "Bash(cmd:*)",
-      "Bash(Stop-Process -Id 1764 -Force)"
+      "Bash(Stop-Process -Id 1764 -Force)",
+      "Bash(gh release create v2.1.0 --title 'v2.1.0 多因子增强版' --notes ':*)"
     ]
   }
 }
