@@ -57,6 +57,9 @@ const DEFAULT_CONFIG: ChanTheoryStrategyConfig = {
   lookbackDays: 5,
 };
 
+/** 模块级别的缓存，用于存储每只股票的上次分析日期 */
+const lastAnalysisDateMap = new Map<string, string>();
+
 /**
  * 创建缠论策略
  */
@@ -86,8 +89,31 @@ export function createChanTheoryStrategy(
       // 数据不足时跳过
       if (bars.length < cfg.minBarsForAnalysis) return;
 
+      // 性能优化：只在持仓或有潜在买卖点时才执行缠论分析
+      const position = ctx.positions.get(symbol);
+
+      // 如果没有持仓，且距离上次分析不到 lookbackDays 天，跳过分析
+      // 这样可以避免每天都执行完整的缠论分析
+      const lastAnalysisDate = lastAnalysisDateMap.get(symbol);
+      if (!position && lastAnalysisDate) {
+        // 计算间隔天数（简单处理：比较日期字符串）
+        const daysDiff = (new Date(ctx.currentDate).getTime() - new Date(lastAnalysisDate).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff < cfg.lookbackDays) {
+          return;
+        }
+      }
+      // 记录上次分析日期
+      lastAnalysisDateMap.set(symbol, ctx.currentDate);
+
       // 执行缠论分析
+      const startTime = Date.now();
       const chanResult = analyzeChanTheoryCore(bars);
+      const analysisTime = Date.now() - startTime;
+
+      // 性能日志：如果分析时间超过 100ms，输出警告
+      if (analysisTime > 100) {
+        console.log(`[ChanTheory] ${ctx.currentDate}: ${symbol}, Bars: ${bars.length}, Analysis took ${analysisTime}ms`);
+      }
 
       // 调试：输出分析结果
       if (chanResult.buySellPoints.length > 0 && ctx.currentDate > '1997-01-01' && ctx.currentDate < '1998-01-01') {
@@ -116,7 +142,6 @@ export function createChanTheoryStrategy(
 
       // 检查是否已经交易过这个买卖点（避免重复交易）
       // 简单处理：如果已有持仓，不再买入；如果没有持仓，不再卖出
-      const position = ctx.positions.get(symbol);
 
       // 处理买入信号
       const buyPoint = recentPoints.find(p => {

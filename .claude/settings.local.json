@@ -21,7 +21,13 @@
       "Bash(gh release create v2.1.0 --title 'v2.1.0 多因子增强版' --notes ':*)",
       "Bash(kill:*)",
       "Bash(powershell:*)",
-      "Bash(curl -s http://localhost:3001/api/version)"
+      "Bash(curl -s http://localhost:3001/api/version)",
+      "Bash(Stop-Process -Name \"node\" -Force -ErrorAction SilentlyContinue)",
+      "Bash(tee server.log)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(curl -s -X POST http://localhost:3001/api/backtest -H 'Content-Type: application/json' -d '{\"strategy\":\"chan-theory\",\"dataSource\":\"csv-directory\",\"initialCapital\":1000000,\"enableBuy1\":1,\"enableBuy2\":1,\"enableBuy3\":1,\"enableSell1\":1}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/backtest -H 'Content-Type: application/json' -d '{\"strategy\":\"chan-theory\",\"config\":{\"initialCapital\":1000000},\"dataSource\":{\"type\":\"csv-directory\",\"path\":\"data\"},\"symbols\":[\"000625\"],\"enableBuy1\":1,\"enableBuy2\":1,\"enableBuy3\":1,\"enableSell1\":1}')",
+      "Bash(node -e \"const fs=require\\('fs'\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{try{const r=JSON.parse\\(d\\);console.log\\('Return:',r.metrics?.totalReturn\\);console.log\\('Trades:',r.metrics?.totalTrades\\);console.log\\('Trade details:',JSON.stringify\\(r.trades?.slice\\(0,3\\)\\)\\)}catch\\(e\\){console.log\\('Raw:',d.slice\\(0,500\\)\\)}}\\)\")"
     ]
   }
 }
