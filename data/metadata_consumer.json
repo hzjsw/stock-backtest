@@ -5,8 +5,8 @@
     "symbol": "000333",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -14,8 +14,8 @@
     "symbol": "000568",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -23,8 +23,8 @@
     "symbol": "000651",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -32,8 +32,8 @@
     "symbol": "000799",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -41,8 +41,8 @@
     "symbol": "000858",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -50,8 +50,8 @@
     "symbol": "000895",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -59,8 +59,8 @@
     "symbol": "002304",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -68,8 +68,8 @@
     "symbol": "002507",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -77,8 +77,8 @@
     "symbol": "002557",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -86,8 +86,8 @@
     "symbol": "002739",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1424
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1425
   },
   {
     "sectorCode": "consumer",
@@ -95,8 +95,8 @@
     "symbol": "600138",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -104,8 +104,8 @@
     "symbol": "600519",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -113,8 +113,8 @@
     "symbol": "600597",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -122,8 +122,8 @@
     "symbol": "600690",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -131,8 +131,17 @@
     "symbol": "600887",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
+  },
+  {
+    "sectorCode": "consumer",
+    "sectorName": "消费",
+    "symbol": "601888",
+    "downloadDate": "2026-11-27",
+    "dataStartDate": "2021-01-04",
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -140,8 +149,8 @@
     "symbol": "603198",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   },
   {
     "sectorCode": "consumer",
@@ -149,7 +158,7 @@
     "symbol": "603288",
     "downloadDate": "2026-11-27",
     "dataStartDate": "2021-01-04",
-    "dataEndDate": "2026-11-26",
-    "dataCount": 1429
+    "dataEndDate": "2026-11-27",
+    "dataCount": 1430
   }
 ]
